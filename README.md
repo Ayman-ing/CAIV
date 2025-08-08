@@ -181,8 +181,6 @@ app/
 │   ├── job_requirements/      # Job requirement analysis
 │   ├── outbox_events/         # Event sourcing
 │   └── vector_embeddings/     # AI embeddings
-├── schemas/                   # Pydantic schemas
-├── services/                  # Business logic services
 └── workers/                   # Background task workers
 ```
 
