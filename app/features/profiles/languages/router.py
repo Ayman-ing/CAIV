@@ -8,13 +8,13 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_db, get_current_user
-from app.features.users.models import User
-from app.features.languages.repository import LanguageRepository
-from app.features.languages.service import LanguageService
-from app.features.languages.schemas import LanguageCreate, LanguageUpdate, LanguageResponse
+from core.dependencies import get_db, get_current_user
+from features.users.models import User
+from features.profiles.languages.repository import LanguageRepository
+from features.profiles.languages.service import LanguageService
+from features.profiles.languages.schemas import LanguageCreate, LanguageUpdate, LanguageResponse
 
-router = APIRouter(prefix="/api/v1/languages", tags=["languages"])
+router = APIRouter(prefix="/api/v1/users/{user_id}/profiles/{profile_id}/languages", tags=["languages"])
 
 
 def get_language_service(db: Session = Depends(get_db)) -> LanguageService:
@@ -25,19 +25,40 @@ def get_language_service(db: Session = Depends(get_db)) -> LanguageService:
 
 @router.post("/", response_model=LanguageResponse, status_code=201)
 async def create_language(
+    user_id: int,
+    profile_id: int,
     language_data: LanguageCreate,
     current_user: User = Depends(get_current_user),
     service: LanguageService = Depends(get_language_service)
 ):
-    """Create a new language skill for the current user"""
+    """Create a new language skill for the specified profile"""
+    # Check ownership
+    if current_user.id != user_id:
+        raise HTTPException(status_code=403, detail="Cannot create language for another user")
+    
     try:
-        return service.create_language(current_user.id, language_data)
+        return service.create_language(profile_id, language_data)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@router.get("/", response_model=list[LanguageResponse])
+async def get_profile_languages(
+    user_id: int,
+    profile_id: int,
+    current_user: User = Depends(get_current_user),
+    service: LanguageService = Depends(get_language_service)
+):
+    """Get all languages for the specified profile"""
+    # Check ownership
+    if current_user.id != user_id:
+        raise HTTPException(status_code=403, detail="Cannot access another user's languages")
+    
+    return service.get_languages_by_profile(profile_id)
 
 @router.get("/{language_uuid}", response_model=LanguageResponse)
 async def get_language(
+    user_id: int,
+    profile_id: int,
     language_uuid: str,
     current_user: User = Depends(get_current_user),
     service: LanguageService = Depends(get_language_service)

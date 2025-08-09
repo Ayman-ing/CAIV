@@ -2,18 +2,23 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from app.core.dependencies import get_db
+from core.dependencies import get_db
 from .service import CertificateService
 from .schemas import CertificateCreate, CertificateUpdate, CertificateResponse
 
-router = APIRouter(prefix="/certificates", tags=["certificates"])
+router = APIRouter(prefix="/api/v1/users/{user_id}/profiles/{profile_id}/certificates", tags=["certificates"])
 
 @router.post("/", response_model=CertificateResponse, status_code=status.HTTP_201_CREATED)
-def create_certificate(certificate_data: CertificateCreate, db: Session = Depends(get_db)):
-    """Create a new certificate"""
+def create_certificate(
+    user_id: int,
+    profile_id: int,
+    certificate_data: CertificateCreate, 
+    db: Session = Depends(get_db)
+):
+    """Create a new certificate for the specified profile"""
     service = CertificateService(db)
     try:
-        return service.create_certificate(certificate_data)
+        return service.create_certificate(certificate_data, profile_id=profile_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

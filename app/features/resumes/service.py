@@ -5,13 +5,12 @@ Business logic for resume and component management.
 """
 
 from typing import List, Optional
-from app.features.resumes.repository import ResumeRepository
-from app.features.resumes.schemas import (
+from .repository import ResumeRepository
+from .schemas import (
     GeneratedResumeCreate, GeneratedResumeUpdate, GeneratedResumeResponse,
-    ResumeComponentCreate, ResumeComponentUpdate, ResumeComponentResponse,
-    ResumeWithComponentsResponse
+    ResumeComponentCreate, ResumeComponentUpdate, ResumeComponentResponse
 )
-from app.features.resumes.models import GeneratedResume, ResumeComponent
+from .models import GeneratedResume, ResumeComponent
 
 
 class ResumeService:
@@ -34,17 +33,17 @@ class ResumeService:
         db_resume = self.repository.create_resume(user_id, resume_data)
         return GeneratedResumeResponse.model_validate(db_resume)
     
-    def get_resume_by_uuid(self, resume_uuid: str) -> Optional[ResumeWithComponentsResponse]:
+    def get_resume_by_uuid(self, resume_uuid: str) -> Optional[GeneratedResumeResponse]:
         """Get resume by UUID with all components"""
         db_resume = self.repository.get_resume_by_uuid(resume_uuid)
         if not db_resume:
             return None
-        return ResumeWithComponentsResponse.model_validate(db_resume)
+        return GeneratedResumeResponse.model_validate(db_resume)
     
-    def get_user_resumes(self, user_id: int, skip: int = 0, limit: int = 100) -> List[ResumeWithComponentsResponse]:
+    def get_user_resumes(self, user_id: int, skip: int = 0, limit: int = 100) -> List[GeneratedResumeResponse]:
         """Get all resumes for a user"""
         db_resumes = self.repository.get_user_resumes(user_id, skip, limit)
-        return [ResumeWithComponentsResponse.model_validate(resume) for resume in db_resumes]
+        return [GeneratedResumeResponse.model_validate(resume) for resume in db_resumes]
     
     def update_resume(self, resume_uuid: str, resume_update: GeneratedResumeUpdate) -> Optional[GeneratedResumeResponse]:
         """Update a resume"""

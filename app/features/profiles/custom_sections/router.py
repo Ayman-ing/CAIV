@@ -8,13 +8,13 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_db, get_current_user
-from app.features.users.models import User
-from app.features.custom_sections.repository import CustomSectionRepository
-from app.features.custom_sections.service import CustomSectionService
-from app.features.custom_sections.schemas import CustomSectionCreate, CustomSectionUpdate, CustomSectionResponse
+from core.dependencies import get_db, get_current_user
+from features.users.models import User
+from features.profiles.custom_sections.repository import CustomSectionRepository
+from features.profiles.custom_sections.service import CustomSectionService
+from features.profiles.custom_sections.schemas import CustomSectionCreate, CustomSectionUpdate, CustomSectionResponse
 
-router = APIRouter(prefix="/api/v1/custom-sections", tags=["custom-sections"])
+router = APIRouter(prefix="/api/v1/users/{user_id}/profiles/{profile_id}/custom-sections", tags=["custom-sections"])
 
 
 def get_custom_section_service(db: Session = Depends(get_db)) -> CustomSectionService:

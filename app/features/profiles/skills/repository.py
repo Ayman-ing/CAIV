@@ -22,7 +22,7 @@ class SkillRepository:
         return self.db.query(Skill).filter(Skill.uuid == skill_uuid).first()
     
     def get_by_user_uuid(self, user_uuid: str, skip: int = 0, limit: int = 100) -> List[Skill]:
-        from app.features.users.models import User
+        from features.users.models import User
         return (self.db.query(Skill)
                 .join(User)
                 .filter(User.uuid == user_uuid)
@@ -31,7 +31,7 @@ class SkillRepository:
                 .all())
     
     def get_by_category(self, user_uuid: str, category: str) -> List[Skill]:
-        from app.features.users.models import User
+        from features.users.models import User
         return (self.db.query(Skill)
                 .join(User)
                 .filter(User.uuid == user_uuid, Skill.category == category)

@@ -5,8 +5,8 @@ Business logic for custom sections operations.
 """
 
 from typing import List, Optional
-from app.features.custom_sections.repository import CustomSectionRepository
-from app.features.custom_sections.schemas import CustomSectionCreate, CustomSectionUpdate, CustomSectionResponse
+from features.profiles.custom_sections.repository import CustomSectionRepository
+from features.profiles.custom_sections.schemas import CustomSectionCreate, CustomSectionUpdate, CustomSectionResponse
 
 
 class CustomSectionService:

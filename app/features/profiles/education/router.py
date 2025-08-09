@@ -2,24 +2,44 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from app.core.dependencies import get_db
+from core.dependencies import get_db
 from .service import EducationService
 from .schemas import EducationCreate, EducationUpdate, EducationResponse
 
-router = APIRouter(prefix="/education", tags=["education"])
+router = APIRouter(prefix="/api/v1/users/{user_id}/profiles/{profile_id}/education", tags=["education"])
 
 @router.post("/", response_model=EducationResponse, status_code=status.HTTP_201_CREATED)
-def create_education(education_data: EducationCreate, db: Session = Depends(get_db)):
-    """Create a new education record"""
+def create_education(
+    user_id: int,
+    profile_id: int,
+    education_data: EducationCreate, 
+    db: Session = Depends(get_db)
+):
+    """Create a new education record for the specified profile"""
     service = EducationService(db)
     try:
-        return service.create_education(education_data)
+        return service.create_education(education_data, profile_id=profile_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@router.get("/", response_model=list[EducationResponse])
+def get_profile_education(
+    user_id: int,
+    profile_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get all education records for the specified profile"""
+    service = EducationService(db)
+    return service.get_education_by_profile(profile_id)
+
 @router.get("/{education_uuid}", response_model=EducationResponse)
-def get_education(education_uuid: str, db: Session = Depends(get_db)):
-    """Get education by UUID"""
+def get_education(
+    user_id: int,
+    profile_id: int,
+    education_uuid: str, 
+    db: Session = Depends(get_db)
+):
+    """Get education by UUID for the specified profile"""
     service = EducationService(db)
     education = service.get_education_by_uuid(education_uuid)
     if not education:

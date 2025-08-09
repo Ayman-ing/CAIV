@@ -5,8 +5,8 @@ Business logic for job description management.
 """
 
 from typing import List, Optional
-from app.features.job_descriptions.repository import JobDescriptionRepository
-from app.features.job_descriptions.schemas import JobDescriptionCreate, JobDescriptionUpdate, JobDescriptionResponse
+from features.job_descriptions.repository import JobDescriptionRepository
+from features.job_descriptions.schemas import JobDescriptionCreate, JobDescriptionUpdate, JobDescriptionResponse
 
 
 class JobDescriptionService:

@@ -8,13 +8,13 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_db, get_current_user
-from app.features.users.models import User
-from app.features.profile_links.repository import ProfileLinkRepository
-from app.features.profile_links.service import ProfileLinkService
-from app.features.profile_links.schemas import ProfileLinkCreate, ProfileLinkUpdate, ProfileLinkResponse
+from core.dependencies import get_db, get_current_user
+from features.users.models import User
+from features.profiles.profile_links.repository import ProfileLinkRepository
+from features.profiles.profile_links.service import ProfileLinkService
+from features.profiles.profile_links.schemas import ProfileLinkCreate, ProfileLinkUpdate, ProfileLinkResponse
 
-router = APIRouter(prefix="/api/v1/user-links", tags=["user-links"])
+router = APIRouter(prefix="/api/v1/users/{user_id}/profiles/{profile_id}/links", tags=["profile-links"])
 
 
 def get_profile_link_service(db: Session = Depends(get_db)) -> ProfileLinkService:

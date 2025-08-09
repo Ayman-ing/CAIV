@@ -4,7 +4,7 @@ from sqlalchemy.orm import relationship, declared_attr
 from datetime import datetime
 import uuid
 
-from shared.models.base import Base
+from ...shared.models.base import Base
 
 class BaseEntity(Base):
     """Base class for all entities that can have vector embeddings"""

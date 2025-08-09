@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 from .repository import SkillRepository
 from .schemas import SkillCreate, SkillUpdate, SkillResponse
-from app.features.users.repository import UserRepository
+from features.users.repository import UserRepository
 
 class SkillService:
     def __init__(self, db: Session):

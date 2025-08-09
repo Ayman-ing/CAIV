@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 from .repository import CertificateRepository
 from .schemas import CertificateCreate, CertificateUpdate, CertificateResponse
-from app.features.users.repository import UserRepository
+from features.users.repository import UserRepository
 
 class CertificateService:
     def __init__(self, db: Session):

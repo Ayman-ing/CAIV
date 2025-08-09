@@ -5,8 +5,8 @@ Business logic for user profile management.
 """
 
 from typing import Optional
-from app.features.profiles.repository import ProfileRepository
-from app.features.profiles.schemas import ProfileCreate, ProfileUpdate, ProfileResponse
+from features.profiles.repository import ProfileRepository
+from features.profiles.schemas import ProfileCreate, ProfileUpdate, ProfileResponse
 import json
 
 

@@ -22,7 +22,7 @@ class ProjectRepository:
         return self.db.query(Project).filter(Project.uuid == project_uuid).first()
     
     def get_by_user_uuid(self, user_uuid: str, skip: int = 0, limit: int = 100) -> List[Project]:
-        from app.features.users.models import User
+        from features.users.models import User
         return (self.db.query(Project)
                 .join(User)
                 .filter(User.uuid == user_uuid)

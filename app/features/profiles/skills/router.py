@@ -2,24 +2,44 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from app.core.dependencies import get_db
+from core.dependencies import get_db
 from .service import SkillService
 from .schemas import SkillCreate, SkillUpdate, SkillResponse
 
-router = APIRouter(prefix="/skills", tags=["skills"])
+router = APIRouter(prefix="/api/v1/users/{user_id}/profiles/{profile_id}/skills", tags=["skills"])
 
 @router.post("/", response_model=SkillResponse, status_code=status.HTTP_201_CREATED)
-def create_skill(skill_data: SkillCreate, db: Session = Depends(get_db)):
-    """Create a new skill"""
+def create_skill(
+    user_id: int,
+    profile_id: int,
+    skill_data: SkillCreate, 
+    db: Session = Depends(get_db)
+):
+    """Create a new skill for the specified profile"""
     service = SkillService(db)
     try:
-        return service.create_skill(skill_data)
+        return service.create_skill(skill_data, profile_id=profile_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@router.get("/", response_model=list[SkillResponse])
+def get_profile_skills(
+    user_id: int,
+    profile_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get all skills for the specified profile"""
+    service = SkillService(db)
+    return service.get_skills_by_profile(profile_id)
+
 @router.get("/{skill_uuid}", response_model=SkillResponse)
-def get_skill(skill_uuid: str, db: Session = Depends(get_db)):
-    """Get skill by UUID"""
+def get_skill(
+    user_id: int,
+    profile_id: int,
+    skill_uuid: str, 
+    db: Session = Depends(get_db)
+):
+    """Get skill by UUID for the specified profile"""
     service = SkillService(db)
     skill = service.get_skill_by_uuid(skill_uuid)
     if not skill:

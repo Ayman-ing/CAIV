@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 from .repository import ProjectRepository
 from .schemas import ProjectCreate, ProjectUpdate, ProjectResponse
-from app.features.users.repository import UserRepository
+from features.users.repository import UserRepository
 
 class ProjectService:
     def __init__(self, db: Session):

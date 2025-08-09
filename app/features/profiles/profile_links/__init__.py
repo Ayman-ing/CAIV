@@ -1,8 +1,8 @@
 """
-User Link feature exports
+Profile Link feature exports
 """
 
-from .schemas import UserLinkCreate, UserLinkUpdate, UserLinkResponse, LinkPlatform
-from .router import router as user_link_router
+from .schemas import ProfileLinkCreate, ProfileLinkUpdate, ProfileLinkResponse, LinkPlatform
+from .router import router as profile_link_router
 
-__all__ = ["UserLinkCreate", "UserLinkUpdate", "UserLinkResponse", "LinkPlatform", "user_link_router"]
+__all__ = ["ProfileLinkCreate", "ProfileLinkUpdate", "ProfileLinkResponse", "LinkPlatform", "profile_link_router"]

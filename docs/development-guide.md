@@ -264,9 +264,9 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.main import app
-from app.features.users.models import User
-from app.features.users.schemas import UserCreate
+from main import app
+from features.users.models import User
+from features.users.schemas import UserCreate
 
 
 class TestUserAPI:

@@ -11,7 +11,7 @@ for root, dirs, files in os.walk('app/features'):
                 content = f.read()
             
             # Replace app.shared.models.base with shared.models.base
-            content = content.replace('from app.shared.models.base import Base', 'from shared.models.base import Base')
+            content = content.replace('from shared.models.base import Base', 'from shared.models.base import Base')
             
             with open(filepath, 'w') as f:
                 f.write(content)

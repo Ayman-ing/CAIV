@@ -5,9 +5,9 @@ Business logic for language skills management.
 """
 
 from typing import List, Optional
-from app.features.languages.repository import LanguageRepository
-from app.features.languages.schemas import LanguageCreate, LanguageUpdate, LanguageResponse
-from app.features.languages.models import Language
+from features.profiles.languages.repository import LanguageRepository
+from features.profiles.languages.schemas import LanguageCreate, LanguageUpdate, LanguageResponse
+from features.profiles.languages.models import Language
 
 
 class LanguageService:

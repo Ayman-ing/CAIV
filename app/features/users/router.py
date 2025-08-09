@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from app.core.dependencies import get_db
-from .service import UserService
-from .schemas import UserCreate, UserUpdate, UserResponse
+from core.dependencies import get_db
+from features.users.service import UserService
+from features.users.schemas import UserCreate, UserUpdate, UserResponse
 
-router = APIRouter(prefix="/users", tags=["users"])
+router = APIRouter(prefix="/api/v1/users", tags=["users"])
 
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def create_user(user_data: UserCreate, db: Session = Depends(get_db)):

@@ -6,7 +6,6 @@ from .schemas import (
     ResumeComponentCreate,
     ResumeComponentUpdate,
     ResumeComponentResponse,
-    ResumeWithComponentsResponse,
     ResumeTemplate,
     ComponentType
 )
@@ -21,7 +20,6 @@ __all__ = [
     "ResumeComponentCreate",
     "ResumeComponentUpdate",
     "ResumeComponentResponse",
-    "ResumeWithComponentsResponse",
     "ResumeTemplate",
     "ComponentType",
     "resume_router"

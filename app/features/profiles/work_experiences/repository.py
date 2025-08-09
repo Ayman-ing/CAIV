@@ -52,7 +52,7 @@ class WorkExperienceRepository:
         return work_exp
     
     def get_by_user_uuid(self, user_uuid: str, skip: int = 0, limit: int = 100) -> List[WorkExperience]:
-        from app.features.users.models import User
+        from features.users.models import User
         return (self.db.query(WorkExperience)
                 .join(User)
                 .filter(User.uuid == user_uuid)

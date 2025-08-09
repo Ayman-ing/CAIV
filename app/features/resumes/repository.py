@@ -6,9 +6,9 @@ Handles all database operations for resumes and resume components.
 
 from typing import List, Optional
 from sqlalchemy.orm import Session, joinedload
-from app.db.models.generated_resume import GeneratedResume
-from app.db.models.resume_component import ResumeComponent
-from app.features.resumes.schemas import GeneratedResumeCreate, GeneratedResumeUpdate, ResumeComponentCreate, ResumeComponentUpdate
+from .models import GeneratedResume
+from .models import ResumeComponent
+from .schemas import GeneratedResumeCreate, GeneratedResumeUpdate, ResumeComponentCreate, ResumeComponentUpdate
 
 
 class ResumeRepository:

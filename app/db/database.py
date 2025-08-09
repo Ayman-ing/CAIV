@@ -7,7 +7,7 @@ import os
 load_dotenv()
 
 # Import all models to ensure they're registered with SQLAlchemy
-from app.shared.models.registry import Base
+from shared.models.registry import Base
 
 # Construct the SQLAlchemy connection string
 DATABASE_URL = os.getenv("database_url")

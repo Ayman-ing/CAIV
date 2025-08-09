@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 from .repository import WorkExperienceRepository
 from .schemas import WorkExperienceCreate, WorkExperienceUpdate, WorkExperienceResponse
-from app.features.users.repository import UserRepository
+from features.users.repository import UserRepository
 
 class WorkExperienceService:
     def __init__(self, db: Session):

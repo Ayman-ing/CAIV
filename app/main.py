@@ -11,7 +11,7 @@ app = FastAPI(
 
 # Include all feature routers
 for router in feature_routers:
-    app.include_router(router, prefix="/api/v1")
+    app.include_router(router)
 
 @app.get("/")
 def root():

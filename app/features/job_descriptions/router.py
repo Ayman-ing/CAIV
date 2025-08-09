@@ -8,13 +8,13 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_db, get_current_user
-from app.features.users.models import User
-from app.features.job_descriptions.repository import JobDescriptionRepository
-from app.features.job_descriptions.service import JobDescriptionService
-from app.features.job_descriptions.schemas import JobDescriptionCreate, JobDescriptionUpdate, JobDescriptionResponse
+from core.dependencies import get_db, get_current_user
+from features.users.models import User
+from features.job_descriptions.repository import JobDescriptionRepository
+from features.job_descriptions.service import JobDescriptionService
+from features.job_descriptions.schemas import JobDescriptionCreate, JobDescriptionUpdate, JobDescriptionResponse
 
-router = APIRouter(prefix="/api/v1/job-descriptions", tags=["job-descriptions"])
+router = APIRouter(prefix="/api/v1/users/{user_id}/job-descriptions", tags=["job-descriptions"])
 
 
 def get_job_description_service(db: Session = Depends(get_db)) -> JobDescriptionService:
@@ -25,24 +25,45 @@ def get_job_description_service(db: Session = Depends(get_db)) -> JobDescription
 
 @router.post("/", response_model=JobDescriptionResponse, status_code=201)
 async def create_job_description(
+    user_id: int,
     job_desc_data: JobDescriptionCreate,
     current_user: User = Depends(get_current_user),
     service: JobDescriptionService = Depends(get_job_description_service)
 ):
-    """Create a new job description for the current user"""
+    """Create a new job description for the specified user"""
+    # Check ownership
+    if current_user.id != user_id:
+        raise HTTPException(status_code=403, detail="Cannot create job description for another user")
+    
     try:
-        return service.create_job_description(current_user.id, job_desc_data)
+        return service.create_job_description(user_id, job_desc_data)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@router.get("/", response_model=list[JobDescriptionResponse])
+async def get_user_job_descriptions(
+    user_id: int,
+    current_user: User = Depends(get_current_user),
+    service: JobDescriptionService = Depends(get_job_description_service)
+):
+    """Get all job descriptions for the specified user"""
+    # Check ownership
+    if current_user.id != user_id:
+        raise HTTPException(status_code=403, detail="Cannot access another user's job descriptions")
+    
+    return service.get_user_job_descriptions(user_id)
 
 @router.get("/{job_desc_uuid}", response_model=JobDescriptionResponse)
 async def get_job_description(
+    user_id: int,
     job_desc_uuid: str,
     current_user: User = Depends(get_current_user),
     service: JobDescriptionService = Depends(get_job_description_service)
 ):
-    """Get a specific job description by UUID"""
+    """Get a specific job description by UUID for the user"""
+    # Check ownership
+    if current_user.id != user_id:
+        raise HTTPException(status_code=403, detail="Cannot access another user's job description")
     job_desc = service.get_job_description_by_uuid(job_desc_uuid)
     if not job_desc:
         raise HTTPException(status_code=404, detail="Job description not found")

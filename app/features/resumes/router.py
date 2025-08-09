@@ -8,17 +8,16 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_db, get_current_user
-from app.features.users.models import User
-from app.features.resumes.repository import ResumeRepository
-from app.features.resumes.service import ResumeService
-from app.features.resumes.schemas import (
+from core.dependencies import get_db, get_current_user
+from ..users.models import User
+from .repository import ResumeRepository
+from .service import ResumeService
+from .schemas import (
     GeneratedResumeCreate, GeneratedResumeUpdate, GeneratedResumeResponse,
-    ResumeComponentCreate, ResumeComponentUpdate, ResumeComponentResponse,
-    ResumeWithComponentsResponse
+    ResumeComponentCreate, ResumeComponentUpdate, ResumeComponentResponse
 )
 
-router = APIRouter(prefix="/api/v1/resumes", tags=["resumes"])
+router = APIRouter(prefix="/api/v1/users/{user_id}/resumes", tags=["resumes"])
 
 
 def get_resume_service(db: Session = Depends(get_db)) -> ResumeService:
@@ -30,23 +29,45 @@ def get_resume_service(db: Session = Depends(get_db)) -> ResumeService:
 # Resume endpoints
 @router.post("/", response_model=GeneratedResumeResponse, status_code=201)
 async def create_resume(
+    user_id: int,
     resume_data: GeneratedResumeCreate,
     current_user: User = Depends(get_current_user),
     service: ResumeService = Depends(get_resume_service)
 ):
-    """Create a new resume for the current user"""
+    """Create a new resume for the specified user"""
+    # Check ownership
+    if current_user.id != user_id:
+        raise HTTPException(status_code=403, detail="Cannot create resume for another user")
+    
     try:
-        return service.create_resume(current_user.id, resume_data)
+        return service.create_resume(user_id, resume_data)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@router.get("/", response_model=list[GeneratedResumeResponse])
+async def get_user_resumes(
+    user_id: int,
+    current_user: User = Depends(get_current_user),
+    service: ResumeService = Depends(get_resume_service)
+):
+    """Get all resumes for the specified user"""
+    # Check ownership
+    if current_user.id != user_id:
+        raise HTTPException(status_code=403, detail="Cannot access another user's resumes")
+    
+    return service.get_user_resumes(user_id)
 
-@router.get("/{resume_uuid}", response_model=ResumeWithComponentsResponse)
+@router.get("/{resume_uuid}", response_model=GeneratedResumeResponse)
 async def get_resume(
+    user_id: int,
     resume_uuid: str,
     current_user: User = Depends(get_current_user),
     service: ResumeService = Depends(get_resume_service)
 ):
+    """Get a specific resume for the user"""
+    # Check ownership
+    if current_user.id != user_id:
+        raise HTTPException(status_code=403, detail="Cannot access another user's resume")
     """Get a specific resume by UUID with all components"""
     resume = service.get_resume_by_uuid(resume_uuid)
     if not resume:
@@ -59,7 +80,7 @@ async def get_resume(
     return resume
 
 
-@router.get("/user/{user_uuid}", response_model=List[ResumeWithComponentsResponse])
+@router.get("/user/{user_uuid}", response_model=List[GeneratedResumeResponse])
 async def get_user_resumes(
     user_uuid: str,
     skip: int = Query(0, ge=0, description="Number of records to skip"),

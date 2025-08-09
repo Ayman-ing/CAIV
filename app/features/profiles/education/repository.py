@@ -22,7 +22,7 @@ class EducationRepository:
         return self.db.query(Education).filter(Education.uuid == education_uuid).first()
     
     def get_by_user_uuid(self, user_uuid: str, skip: int = 0, limit: int = 100) -> List[Education]:
-        from app.features.users.models import User
+        from features.users.models import User
         return (self.db.query(Education)
                 .join(User)
                 .filter(User.uuid == user_uuid)

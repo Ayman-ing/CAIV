@@ -6,8 +6,8 @@ Handles all database operations for language skills.
 
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from app.db.models.language import Language
-from app.features.languages.schemas import LanguageCreate, LanguageUpdate
+from features.profiles.languages import Language
+from features.profiles.languages.schemas import LanguageCreate, LanguageUpdate
 
 
 class LanguageRepository:

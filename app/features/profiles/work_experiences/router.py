@@ -2,21 +2,32 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from app.core.dependencies import get_db
+from core.dependencies import get_db
 from .service import WorkExperienceService
 from .schemas import WorkExperienceCreate, WorkExperienceUpdate, WorkExperienceResponse
 
-router = APIRouter(prefix="/work-experiences", tags=["work-experiences"])
+router = APIRouter(prefix="/api/v1/users/{user_id}/profiles/{profile_id}/work-experiences", tags=["work-experiences"])
 
 @router.post("/", response_model=WorkExperienceResponse, status_code=status.HTTP_201_CREATED)
-def create_work_experience(work_exp_data: WorkExperienceCreate, db: Session = Depends(get_db)):
-    """Create a new work experience"""
+def create_work_experience(
+    user_id: int, 
+    profile_id: int, 
+    work_exp_data: WorkExperienceCreate, 
+    db: Session = Depends(get_db)
+):
+    """Create a new work experience for the specified profile"""
     service = WorkExperienceService(db)
-    return service.create_work_experience(work_exp_data)
+    # Add validation that profile belongs to user
+    return service.create_work_experience(work_exp_data, profile_id=profile_id)
 
 @router.get("/{work_exp_uuid}", response_model=WorkExperienceResponse)
-def get_work_experience(work_exp_uuid: str, db: Session = Depends(get_db)):
-    """Get work experience by UUID"""
+def get_work_experience(
+    user_id: int, 
+    profile_id: int, 
+    work_exp_uuid: str, 
+    db: Session = Depends(get_db)
+):
+    """Get work experience by UUID for the specified profile"""
     service = WorkExperienceService(db)
     work_exp = service.get_work_experience_by_uuid(work_exp_uuid)
     if not work_exp:

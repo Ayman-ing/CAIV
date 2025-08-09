@@ -6,8 +6,8 @@ Handles all database operations for user links.
 
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from app.db.models.user_link import ProfileLink
-from app.features.user_links.schemas import ProfileLinkCreate, ProfileLinkUpdate
+from features.profiles.profile_links.models import ProfileLink
+from features.profiles.profile_links.schemas import ProfileLinkCreate, ProfileLinkUpdate
 
 
 class ProfileLinkRepository:

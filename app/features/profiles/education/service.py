@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 from .repository import EducationRepository
 from .schemas import EducationCreate, EducationUpdate, EducationResponse
-from app.features.users.repository import UserRepository
+from features.users.repository import UserRepository
 
 class EducationService:
     def __init__(self, db: Session):
