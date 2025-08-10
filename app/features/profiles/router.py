@@ -7,13 +7,14 @@ FastAPI routes for user profile management.
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from core.dependencies import get_db, get_current_user
+from core.dependencies import get_db
+from features.auth.dependencies import get_current_user
 from features.users.models import User
 from features.profiles.repository import ProfileRepository
 from features.profiles.service import ProfileService
 from features.profiles.schemas import ProfileCreate, ProfileUpdate, ProfileResponse
 
-router = APIRouter(prefix="/api/v1/users/{user_id}/profiles", tags=["profiles"])
+router = APIRouter(prefix="/api/v1/profiles", tags=["profiles"])
 
 
 def get_profile_service(db: Session = Depends(get_db)) -> ProfileService:

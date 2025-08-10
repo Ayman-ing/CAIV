@@ -6,7 +6,7 @@ from core.dependencies import get_db
 from .service import SkillService
 from .schemas import SkillCreate, SkillUpdate, SkillResponse
 
-router = APIRouter(prefix="/api/v1/users/{user_id}/profiles/{profile_id}/skills", tags=["skills"])
+router = APIRouter(prefix="/api/v1/profiles/{profile_id}/skills", tags=["skills"])
 
 @router.post("/", response_model=SkillResponse, status_code=status.HTTP_201_CREATED)
 def create_skill(

@@ -6,7 +6,7 @@ from core.dependencies import get_db
 from .service import ProjectService
 from .schemas import ProjectCreate, ProjectUpdate, ProjectResponse
 
-router = APIRouter(prefix="/api/v1/users/{user_id}/profiles/{profile_id}/projects", tags=["projects"])
+router = APIRouter(prefix="/api/v1/profiles/{profile_id}/projects", tags=["projects"])
 
 @router.post("/", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)
 def create_project(

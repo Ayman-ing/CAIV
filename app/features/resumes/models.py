@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship, declared_attr
+from sqlalchemy.orm import relationship
 from datetime import datetime
 import uuid
 
@@ -10,24 +10,27 @@ from shared.models.base import Base
 class GeneratedResume(BaseEntity):
     __tablename__ = 'generated_resumes'
     
-    profile_id = Column(Integer, ForeignKey('profiles.id'),nullable=False)  # Profile-specific resumes
+    # Primary key that's also a foreign key to the parent entities table
+    id = Column(Integer, ForeignKey('entities.id'), primary_key=True)
+    
+    # GeneratedResume specific fields
+    profile_id = Column(Integer, ForeignKey('profiles.id'), nullable=False)  # Profile-specific resumes
     job_description_id = Column(Integer, ForeignKey('job_descriptions.id'), nullable=True)
     title = Column(String)
     template_name = Column(String)  # Template used for generation
     content = Column(Text)  # Generated resume content (JSON or HTML)
     relevance_score = Column(Float, nullable=True)  # AI-calculated relevance to job
     
-    @declared_attr
-    def profile(cls):
-        return relationship("Profile", back_populates="generated_resumes")
+    # Relationships
+    profile = relationship("Profile", back_populates="generated_resumes")
+    job_description = relationship("JobDescription", back_populates="generated_resumes", 
+                                   foreign_keys=[job_description_id])
+    resume_components = relationship("ResumeComponent", back_populates="generated_resume")
+    # embeddings relationship is inherited from BaseEntity via Entity table
     
-    @declared_attr
-    def job_description(cls):
-        return relationship("JobDescription", back_populates="generated_resumes")
-    
-    @declared_attr
-    def resume_components(cls):
-        return relationship("ResumeComponent", back_populates="generated_resume")
+    __mapper_args__ = {
+        'polymorphic_identity': 'generated_resume',
+    }
     # embeddings relationship is inherited from BaseEntity
 
 class ResumeComponent(Base):
@@ -43,3 +46,7 @@ class ResumeComponent(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     generated_resume = relationship("GeneratedResume", back_populates="resume_components")
+    
+    __mapper_args__ = {
+        'polymorphic_identity': 'generated_resume',
+    }

@@ -6,7 +6,7 @@ from core.dependencies import get_db
 from .service import EducationService
 from .schemas import EducationCreate, EducationUpdate, EducationResponse
 
-router = APIRouter(prefix="/api/v1/users/{user_id}/profiles/{profile_id}/education", tags=["education"])
+router = APIRouter(prefix="/api/v1/profiles/{profile_id}/education", tags=["education"])
 
 @router.post("/", response_model=EducationResponse, status_code=status.HTTP_201_CREATED)
 def create_education(

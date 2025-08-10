@@ -8,13 +8,14 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from core.dependencies import get_db, get_current_user
+from core.dependencies import get_db
+from features.auth.dependencies import get_current_user
 from features.users.models import User
 from features.profiles.languages.repository import LanguageRepository
 from features.profiles.languages.service import LanguageService
 from features.profiles.languages.schemas import LanguageCreate, LanguageUpdate, LanguageResponse
 
-router = APIRouter(prefix="/api/v1/users/{user_id}/profiles/{profile_id}/languages", tags=["languages"])
+router = APIRouter(prefix="/api/v1/profiles/{profile_id}/languages", tags=["languages"])
 
 
 def get_language_service(db: Session = Depends(get_db)) -> LanguageService:

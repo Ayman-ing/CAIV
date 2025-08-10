@@ -2,11 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from core.dependencies import get_db
+from features.users.models import User
+from core.dependencies import  get_db
+from features.auth.dependencies import get_current_user
 from features.users.service import UserService
 from features.users.schemas import UserCreate, UserUpdate, UserResponse
 
-router = APIRouter(prefix="/api/v1/users", tags=["users"])
+router = APIRouter(prefix="/api/v1", tags=["users"])
 
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def create_user(user_data: UserCreate, db: Session = Depends(get_db)):
@@ -17,11 +19,11 @@ def create_user(user_data: UserCreate, db: Session = Depends(get_db)):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/{user_uuid}", response_model=UserResponse)
-def get_user(user_uuid: str, db: Session = Depends(get_db)):
-    """Get user by UUID"""
+@router.get("/me", response_model=UserResponse)
+def get_user_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get current user information"""
     service = UserService(db)
-    user = service.get_user_by_uuid(user_uuid)
+    user = service.get_user_by_uuid(current_user.uuid)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
@@ -32,21 +34,21 @@ def list_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     service = UserService(db)
     return service.list_users(skip, limit)
 
-@router.put("/{user_uuid}", response_model=UserResponse)
-def update_user(user_uuid: str, user_data: UserUpdate, db: Session = Depends(get_db)):
-    """Update user information"""
+@router.put("/me", response_model=UserResponse)
+def update_user_me(user_data: UserUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Update current user information"""
     service = UserService(db)
     # First get user by UUID to get the ID
-    user = service.get_user_by_uuid(user_uuid)
+    user = service.get_user_by_uuid(current_user.uuid)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
-    updated_user = service.update_user_by_uuid(user_uuid, user_data)
+
+    updated_user = service.update_user_by_uuid(user.uuid, user_data)
     if not updated_user:
         raise HTTPException(status_code=404, detail="User not found")
     return updated_user
 
-@router.delete("/{user_uuid}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
 def delete_user(user_uuid: str, db: Session = Depends(get_db)):
     """Delete a user"""
     service = UserService(db)

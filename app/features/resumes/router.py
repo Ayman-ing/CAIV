@@ -8,7 +8,8 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from core.dependencies import get_db, get_current_user
+from core.dependencies import get_db
+from features.auth.dependencies import get_current_user
 from ..users.models import User
 from .repository import ResumeRepository
 from .service import ResumeService
@@ -17,7 +18,7 @@ from .schemas import (
     ResumeComponentCreate, ResumeComponentUpdate, ResumeComponentResponse
 )
 
-router = APIRouter(prefix="/api/v1/users/{user_id}/resumes", tags=["resumes"])
+router = APIRouter(prefix="/api/v1/profiles/{profile_id}/resumes", tags=["resumes"])
 
 
 def get_resume_service(db: Session = Depends(get_db)) -> ResumeService:

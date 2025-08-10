@@ -6,7 +6,7 @@ from core.dependencies import get_db
 from .service import CertificateService
 from .schemas import CertificateCreate, CertificateUpdate, CertificateResponse
 
-router = APIRouter(prefix="/api/v1/users/{user_id}/profiles/{profile_id}/certificates", tags=["certificates"])
+router = APIRouter(prefix="/api/v1/profiles/{profile_id}/certificates", tags=["certificates"])
 
 @router.post("/", response_model=CertificateResponse, status_code=status.HTTP_201_CREATED)
 def create_certificate(

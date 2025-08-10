@@ -5,14 +5,23 @@ import uuid
 
 class UserBase(BaseModel):
     email: EmailStr
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
     location: Optional[str] = None
     phone_number: Optional[str] = None
+    is_active: Optional[bool] = True
 
 class UserCreate(UserBase):
-    pass
+    password: str
+    confirm_password: str
+    
 
 class UserUpdate(UserBase):
     email: Optional[EmailStr] = None
+    location: Optional[str] = None
+    phone_number: Optional[str] = None
+    password: Optional[str] = None
+    confirm_password: Optional[str] = None
 
 class UserResponse(UserBase):
     id: int

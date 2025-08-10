@@ -14,7 +14,7 @@ from features.job_keywords.models import JobKeyword
 from features.job_requirements.models import JobRequirement
 from features.outbox_events.models import OutboxEvent
 from features.profiles.professional_summaries.models import ProfessionalSummary
-from features.vector_embeddings.models import VectorEmbedding
+from features.vector_embeddings.models import Embedding
 from features.resumes.models import GeneratedResume, ResumeComponent
 from shared.models.base import Base
 
@@ -38,6 +38,6 @@ __all__ = [
     "Language",
     "GeneratedResume",
     "ResumeComponent",
-    "VectorEmbedding",
+    "Embedding",
     
 ]

@@ -6,7 +6,7 @@ from core.dependencies import get_db
 from .service import WorkExperienceService
 from .schemas import WorkExperienceCreate, WorkExperienceUpdate, WorkExperienceResponse
 
-router = APIRouter(prefix="/api/v1/users/{user_id}/profiles/{profile_id}/work-experiences", tags=["work-experiences"])
+router = APIRouter(prefix="/api/v1/profiles/{profile_id}/work-experiences", tags=["work-experiences"])
 
 @router.post("/", response_model=WorkExperienceResponse, status_code=status.HTTP_201_CREATED)
 def create_work_experience(

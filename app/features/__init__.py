@@ -1,4 +1,5 @@
 # Import all feature modules
+from .auth import auth_router  # Add this import
 from .users import router as users_router
 from .profiles.work_experiences import router as work_experiences_router
 from .profiles.projects import router as projects_router
@@ -12,8 +13,10 @@ from .profiles.custom_sections import custom_section_router
 from .profiles.profile_links import profile_link_router
 from .job_descriptions import job_description_router
 
+
 # List of all feature routers
 feature_routers = [
+    auth_router,
     users_router,
     work_experiences_router,
     projects_router,

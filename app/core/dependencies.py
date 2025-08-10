@@ -24,12 +24,3 @@ def get_db() -> Generator[Session, None, None]:
     finally:
         db.close()
 
-def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)) -> User:
-    """
-    Dependency to get the current user from the token
-  """
-    payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-    user = db.query(User).filter(User.id == payload.get("sub")).first()
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
-    return user  

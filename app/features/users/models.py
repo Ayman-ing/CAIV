@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -11,9 +11,13 @@ class User(Base):
     
     id = Column(Integer, primary_key=True)
     uuid = Column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
-    email = Column(String, nullable=False)
+    password_hash = Column(String, nullable=False)
+    email = Column(String, nullable=False,index=True)
+    first_name = Column(String)
+    last_name = Column(String)
     location = Column(String)
     phone_number = Column(String)
+    is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)
     

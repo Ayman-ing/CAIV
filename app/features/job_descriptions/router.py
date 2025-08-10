@@ -8,7 +8,8 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from core.dependencies import get_db, get_current_user
+from core.dependencies import get_db
+from features.auth.dependencies import get_current_user
 from features.users.models import User
 from features.job_descriptions.repository import JobDescriptionRepository
 from features.job_descriptions.service import JobDescriptionService
