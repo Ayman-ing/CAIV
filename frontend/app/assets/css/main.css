@@ -1,0 +1,215 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* PrimeVue theme will be imported in nuxt.config.ts */
+
+@layer base {
+  body {
+    @apply font-sans bg-gray-50 dark:bg-gray-900 transition-colors duration-300;
+  }
+}
+
+@layer components {
+  .hero-gradient {
+    @apply bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 
+           dark:from-gray-900 dark:via-blue-950 dark:to-purple-950;
+  }
+  
+  .text-gradient {
+    @apply bg-gradient-to-r from-blue-600 to-purple-600 
+           dark:from-blue-400 dark:to-purple-400 
+           bg-clip-text text-transparent;
+  }
+  
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-xl hover:-translate-y-1 
+           dark:hover:shadow-2xl dark:hover:shadow-blue-500/10;
+  }
+  
+  .animate-fade-in {
+    animation: fade-in 1s ease-in-out;
+  }
+  
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Split Screen Auth Layout */
+  .auth-split-gradient {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+
+  .dark .auth-split-gradient {
+    background: linear-gradient(135deg, #1e3a8a 0%, #581c87 100%);
+  }
+
+  /* PrimeVue Input Fixes */
+  .p-inputtext {
+    background-color: white !important;
+    border-color: #d1d5db !important;
+    color: #111827 !important;
+  }
+
+  .dark .p-inputtext {
+    background-color: #1f2937 !important;
+    border-color: #4b5563 !important;
+    color: #f9fafb !important;
+  }
+
+  .p-inputtext:focus {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+  }
+
+  .dark .p-inputtext:focus {
+    border-color: #60a5fa !important;
+    box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2) !important;
+  }
+
+  .p-inputtext::placeholder {
+    color: #9ca3af !important;
+    opacity: 1 !important;
+  }
+
+  .dark .p-inputtext::placeholder {
+    color: #6b7280 !important;
+    opacity: 1 !important;
+  }
+
+  .p-inputtext:focus::placeholder {
+    color: #d1d5db !important;
+  }
+
+  .dark .p-inputtext:focus::placeholder {
+    color: #4b5563 !important;
+  }
+
+  /* Password Input Fixes */
+  .p-password .p-inputtext {
+    background-color: white !important;
+    border-color: #d1d5db !important;
+    color: #111827 !important;
+  }
+
+  .dark .p-password .p-inputtext {
+    background-color: #1f2937 !important;
+    border-color: #4b5563 !important;
+    color: #f9fafb !important;
+  }
+
+  .p-password .p-inputtext::placeholder {
+    color: #9ca3af !important;
+    opacity: 1 !important;
+  }
+
+  .dark .p-password .p-inputtext::placeholder {
+    color: #6b7280 !important;
+    opacity: 1 !important;
+  }
+
+  /* Button Fixes */
+  .p-button.p-button-outlined {
+    border-color: #d1d5db !important;
+    color: #374151 !important;
+    background-color: transparent !important;
+  }
+
+  .dark .p-button.p-button-outlined {
+    border-color: #4b5563 !important;
+    color: #d1d5db !important;
+  }
+
+  .p-button.p-button-outlined:hover {
+    background-color: #f9fafb !important;
+    border-color: #9ca3af !important;
+  }
+
+  .dark .p-button.p-button-outlined:hover {
+    background-color: #374151 !important;
+    border-color: #6b7280 !important;
+  }
+
+  .p-button-link {
+    color: #2563eb !important;
+    background-color: transparent !important;
+  }
+
+  .dark .p-button-link {
+    color: #60a5fa !important;
+  }
+
+  .p-button-link:hover {
+    color: #1d4ed8 !important;
+    background-color: transparent !important;
+  }
+
+  .dark .p-button-link:hover {
+    color: #93c5fd !important;
+  }
+
+  /* Checkbox Fixes */
+  .p-checkbox .p-checkbox-box {
+    border-color: #d1d5db !important;
+    background-color: white !important;
+  }
+
+  .dark .p-checkbox .p-checkbox-box {
+    border-color: #4b5563 !important;
+    background-color: #1f2937 !important;
+  }
+
+  .p-checkbox .p-checkbox-box.p-highlight {
+    background-color: #2563eb !important;
+    border-color: #2563eb !important;
+  }
+
+  .dark .p-checkbox .p-checkbox-box.p-highlight {
+    background-color: #3b82f6 !important;
+    border-color: #3b82f6 !important;
+  }
+
+  /* Dialog Fixes */
+  .p-dialog {
+    background-color: white !important;
+  }
+
+  .dark .p-dialog {
+    background-color: #1f2937 !important;
+  }
+
+  .p-dialog .p-dialog-header {
+    background-color: white !important;
+    border-bottom: 1px solid #e5e7eb !important;
+  }
+
+  .dark .p-dialog .p-dialog-header {
+    background-color: #1f2937 !important;
+    border-bottom: 1px solid #374151 !important;
+  }
+
+  .p-dialog .p-dialog-title {
+    color: #111827 !important;
+  }
+
+  .dark .p-dialog .p-dialog-title {
+    color: #f9fafb !important;
+  }
+
+  .p-dialog .p-dialog-content {
+    background-color: white !important;
+    color: #111827 !important;
+  }
+
+  .dark .p-dialog .p-dialog-content {
+    background-color: #1f2937 !important;
+    color: #f9fafb !important;
+  }
+}
