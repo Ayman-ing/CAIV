@@ -79,19 +79,3 @@ async def reset_password(
     """Reset password using reset token"""
     auth_service.reset_user_password(reset_data)
     return {"message": "Password reset successfully"}
-
-@router.get("/me")
-async def get_current_user_info(current_user: User = Depends(get_current_user)):
-    """Get current authenticated user information"""
-    return {
-        "id": current_user.id,
-        "uuid": current_user.uuid,
-        "email": current_user.email,
-        "first_name": current_user.first_name,
-        "last_name": current_user.last_name,
-        "location": current_user.location,
-        "phone_number": current_user.phone_number,
-        "is_active": current_user.is_active,
-        "created_at": current_user.created_at,
-        "updated_at": current_user.updated_at
-    }

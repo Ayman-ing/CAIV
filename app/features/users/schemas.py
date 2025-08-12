@@ -2,6 +2,7 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 from datetime import datetime
 from typing import Optional
 import uuid
+from .models import UserRole
 
 class UserBase(BaseModel):
     email: EmailStr
@@ -29,10 +30,14 @@ class UserUpdate(UserBase):
     phone_number: Optional[str] = None
     password: Optional[str] = None
     confirm_password: Optional[str] = None
+    role: Optional[UserRole] = None
 
 class UserResponse(UserBase):
     id: int
     uuid: uuid.UUID
+    role: UserRole
+    is_verified: bool
+    last_login: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
     

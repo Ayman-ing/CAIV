@@ -24,6 +24,7 @@ try:
     import importlib.util
     
     model_files = [
+        ("entity_models", "shared/models/entity.py"),  # Import entity models first
         ("users_models", "features/users/models.py"),
         ("profiles_models", "features/profiles/models.py"),
         ("resumes_models", "features/resumes/models.py"),
