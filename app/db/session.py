@@ -1,22 +1,35 @@
+"""
+Database session management
+"""
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from dotenv import load_dotenv
-import os
+from sqlalchemy.exc import SQLAlchemyError
+import logging
 
-# Load environment variables from .env
-load_dotenv()
+from core.config import get_settings
 
-# Construct the SQLAlchemy connection string
-DATABASE_URL = os.getenv("database_url")
+logger = logging.getLogger(__name__)
+settings = get_settings()
 
-# Create the SQLAlchemy engine
+# Create engine
 engine = create_engine(
-    DATABASE_URL,
-    connect_args={
-        "connect_timeout": 30,
-        "application_name": "caiv_app"
-    }
+    settings.DATABASE_URL,
+    echo=settings.DEBUG,
+    pool_pre_ping=True,
+    pool_recycle=300,
 )
 
-# Create SessionLocal class
+# Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+def get_db():
+    """Database dependency for FastAPI"""
+    db = SessionLocal()
+    try:
+        yield db
+    except SQLAlchemyError as e:
+        logger.error(f"Database error: {e}")
+        db.rollback()
+        raise
+    finally:
+        db.close()

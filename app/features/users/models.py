@@ -13,8 +13,8 @@ class User(Base):
     uuid = Column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
     password_hash = Column(String, nullable=False)
     email = Column(String, nullable=False,index=True)
-    first_name = Column(String)
-    last_name = Column(String)
+    first_name = Column(String, nullable=False)  # Now required
+    last_name = Column(String, nullable=False)   # Now required
     location = Column(String)
     phone_number = Column(String)
     is_active = Column(Boolean, default=True, nullable=False)

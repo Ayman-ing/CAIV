@@ -6,9 +6,9 @@ from features.users.models import User
 from .schemas import UserRegister, Token, PasswordChange, PasswordReset, PasswordResetConfirm
 from .service import AuthService
 from .dependencies import get_current_user, get_auth_service
-
+from core.config import get_settings
 router = APIRouter(prefix="/api/v1/auth", tags=["authentication"])
-
+settings = get_settings()
 @router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
 async def register(
     user_data: UserRegister,
@@ -20,7 +20,7 @@ async def register(
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "expires_in": 1800,  # 30 minutes in seconds
+        "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES,  # 30 minutes in seconds
         "user_id": str(user.uuid)
     }
 

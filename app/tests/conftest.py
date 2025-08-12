@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["JWT_SECRET"] = "test_secret_key_for_testing_only"
 
 from main import app
-from core.dependencies import get_db
+from db.session import get_db
 from shared.models.registry import Base
 from features.users.models import User
 from features.auth.service import AuthService

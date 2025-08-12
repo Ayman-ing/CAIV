@@ -4,8 +4,10 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 import uuid
 from shared.models.entity import BaseEntity
-
-
+from features.resumes.models import GeneratedResume
+from features.users.models import User
+from features.job_keywords.models import JobKeyword
+from features.job_requirements.models import JobRequirement
 class JobDescription(BaseEntity):
     __tablename__ = 'job_descriptions'
     

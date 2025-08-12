@@ -21,8 +21,15 @@ class UserRegister(BaseModel):
     email: EmailStr = Field(..., description="User's email address")
     password: str = Field(..., min_length=6, max_length=100, description="User's password")
     confirm_password: str = Field(..., min_length=6, max_length=100, description="Password confirmation")
-    first_name: Optional[str] = Field(None, max_length=50, description="User's first name")
-    last_name: Optional[str] = Field(None, max_length=50, description="User's last name")
+    first_name: str = Field(..., min_length=1, max_length=50, description="User's first name (required)")
+    last_name: str = Field(..., min_length=1, max_length=50, description="User's last name (required)")
+    
+    @field_validator('first_name', 'last_name')
+    @classmethod
+    def validate_names(cls, v):
+        if not v or not v.strip():
+            raise ValueError('Name cannot be empty or just whitespace')
+        return v.strip()
     
     @model_validator(mode='after')
     def passwords_match(self):
@@ -35,7 +42,9 @@ class UserRegister(BaseModel):
             "example": {
                 "email": "newuser@example.com",
                 "password": "secretpassword",
-                "confirm_password": "secretpassword"
+                "confirm_password": "secretpassword",
+                "first_name": "John",
+                "last_name": "Doe"
             }
         }
     }

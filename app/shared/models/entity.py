@@ -3,6 +3,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import uuid
+from features.vector_embeddings.models import Embedding
 
 from shared.models.base import Base
 

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from features.users.models import User
-from core.dependencies import  get_db
+from db.session import  get_db
 from features.auth.dependencies import get_current_user
 from features.users.service import UserService
 from features.users.schemas import UserCreate, UserUpdate, UserResponse

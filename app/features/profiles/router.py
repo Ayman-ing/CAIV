@@ -7,7 +7,7 @@ FastAPI routes for user profile management.
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from core.dependencies import get_db
+from db.session import get_db
 from features.auth.dependencies import get_current_user
 from features.users.models import User
 from features.profiles.repository import ProfileRepository

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from core.dependencies import get_db
+from db.session import get_db
 from .service import SkillService
 from .schemas import SkillCreate, SkillUpdate, SkillResponse
 

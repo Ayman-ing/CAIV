@@ -9,14 +9,15 @@ from sqlalchemy.orm import Session
 from features.users.models import User
 from .repository import AuthRepository
 from .schemas import UserRegister, PasswordChange, PasswordReset, PasswordResetConfirm
-
+from core.config import get_settings
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # JWT settings
-SECRET_KEY = os.getenv("JWT_SECRET", os.getenv("JWT_SECRET"))
+settings = get_settings()
+SECRET_KEY = settings.JWT_SECRET
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 
 class AuthService:
     def __init__(self, db: Session):
