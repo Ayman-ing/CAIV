@@ -12,7 +12,7 @@ from features.users.schemas import UserCreate, UserUpdate, UserResponse
 router = APIRouter(prefix="/api/v1", tags=["users"])
 
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def create_user(user_data: UserCreate, db: Session = Depends(get_db)):
+def create_user(user_data: UserCreate, db: Session = Depends(get_db),admin_user: User =Depends(require_admin)):
     """Create a new user"""
     service = UserService(db)
     try:

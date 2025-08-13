@@ -8,8 +8,6 @@ class UserBase(BaseModel):
     email: EmailStr
     first_name: str = Field(..., min_length=1, max_length=50, description="User's first name (required)")
     last_name: str = Field(..., min_length=1, max_length=50, description="User's last name (required)")
-    location: Optional[str] = None
-    phone_number: Optional[str] = None
     is_active: Optional[bool] = True
     
     @field_validator('first_name', 'last_name')
@@ -26,8 +24,6 @@ class UserCreate(UserBase):
 
 class UserUpdate(UserBase):
     email: Optional[EmailStr] = None
-    location: Optional[str] = None
-    phone_number: Optional[str] = None
     password: Optional[str] = None
     confirm_password: Optional[str] = None
     role: Optional[UserRole] = None

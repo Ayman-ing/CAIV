@@ -111,7 +111,7 @@ class TestAuthRouter:
 
     def test_get_me_success(self, client, auth_headers, created_user):
         """Test getting current user info with valid token"""
-        response = client.get("/api/v1/auth/me", headers=auth_headers)
+        response = client.get("/api/v1/me", headers=auth_headers)
         
         assert response.status_code == status.HTTP_200_OK
         
@@ -123,14 +123,14 @@ class TestAuthRouter:
 
     def test_get_me_no_token(self, client):
         """Test getting current user info without token"""
-        response = client.get("/api/v1/auth/me")
+        response = client.get("/api/v1/me")
         
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     def test_get_me_invalid_token(self, client):
         """Test getting current user info with invalid token"""
         headers = {"Authorization": "Bearer invalid_token"}
-        response = client.get("/api/v1/auth/me", headers=headers)
+        response = client.get("/api/v1/me", headers=headers)
         
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
@@ -257,7 +257,7 @@ class TestAuthRouterSecurity:
         )
         
         headers = {"Authorization": f"Bearer {expired_token}"}
-        response = client.get("/api/v1/auth/me", headers=headers)
+        response = client.get("/api/v1/me", headers=headers)
         
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
@@ -271,5 +271,5 @@ class TestAuthRouterSecurity:
         ]
         
         for headers in malformed_headers:
-            response = client.get("/api/v1/auth/me", headers=headers)
+            response = client.get("/api/v1/me", headers=headers)
             assert response.status_code == status.HTTP_401_UNAUTHORIZED

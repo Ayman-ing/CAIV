@@ -25,12 +25,15 @@ class Profile(Base):
     
     id = Column(Integer, primary_key=True)
     uuid = Column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, unique=True)  # Unique for 1-to-1
     name = Column(String)
+    email = Column(String)         # Professional/public email (can be different from login email)
+    phone_number = Column(String)  # Moved from User model
+    location = Column(String)      # Moved from User model
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    user = relationship("User", back_populates="profiles")
+    user = relationship("User", back_populates="profile")  # 1-to-1 relationship
     generated_resumes = relationship("GeneratedResume", back_populates="profile")
     education = relationship("Education", back_populates="profile")
     work_experiences = relationship("WorkExperience", back_populates="profile")

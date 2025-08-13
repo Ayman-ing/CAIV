@@ -21,8 +21,6 @@ class User(Base):
     email = Column(String, nullable=False, unique=True, index=True)
     first_name = Column(String, nullable=False)  # Now required
     last_name = Column(String, nullable=False)   # Now required
-    location = Column(String)
-    phone_number = Column(String)
     
     # Role and status
     role = Column(Enum(UserRole), default=UserRole.USER, nullable=False)
@@ -34,8 +32,8 @@ class User(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     last_login = Column(DateTime)
     
-    # Relationships
-    profiles = relationship("Profile", back_populates="user")
+    # Relationships - 1-to-1 with Profile
+    profile = relationship("Profile", back_populates="user", uselist=False)
     job_descriptions = relationship("JobDescription", back_populates="user")
     
     @property

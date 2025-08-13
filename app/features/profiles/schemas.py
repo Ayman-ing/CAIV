@@ -4,13 +4,17 @@ Profile Schemas
 Pydantic schemas for profile data validation.
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from datetime import datetime
 from typing import Optional, List
 import uuid
 
 
 class ProfileBase(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None  # Professional/public email (different from login email)
+    phone_number: Optional[str] = None  # Moved from User model
+    location: Optional[str] = None      # Moved from User model
     headline: Optional[str] = None
     summary: Optional[str] = None
     specializations: Optional[List[str]] = None
@@ -22,6 +26,10 @@ class ProfileCreate(ProfileBase):
 
 
 class ProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None    # Professional/public email (different from login email)
+    phone_number: Optional[str] = None  # Moved from User model
+    location: Optional[str] = None      # Moved from User model
     headline: Optional[str] = None
     summary: Optional[str] = None
     specializations: Optional[List[str]] = None
