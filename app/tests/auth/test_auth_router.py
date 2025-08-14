@@ -56,6 +56,68 @@ class TestAuthRouter:
         
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
+    def test_register_weak_password_too_short(self, client, sample_user_data):
+        """Test registration with password too short (less than 8 characters)"""
+        invalid_data = sample_user_data.copy()
+        invalid_data["password"] = "Short1"  # 6 characters
+        invalid_data["confirm_password"] = "Short1"
+        
+        response = client.post("/api/v1/auth/register", json=invalid_data)
+        
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        data = response.json()
+        assert any("at least 8 characters" in str(error) for error in data["detail"])
+
+    def test_register_weak_password_no_uppercase(self, client, sample_user_data):
+        """Test registration with password missing uppercase letter"""
+        invalid_data = sample_user_data.copy()
+        invalid_data["password"] = "lowercase123"
+        invalid_data["confirm_password"] = "lowercase123"
+        
+        response = client.post("/api/v1/auth/register", json=invalid_data)
+        
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        data = response.json()
+        assert any("uppercase letter" in str(error) for error in data["detail"])
+
+    def test_register_weak_password_no_lowercase(self, client, sample_user_data):
+        """Test registration with password missing lowercase letter"""
+        invalid_data = sample_user_data.copy()
+        invalid_data["password"] = "UPPERCASE123"
+        invalid_data["confirm_password"] = "UPPERCASE123"
+        
+        response = client.post("/api/v1/auth/register", json=invalid_data)
+        
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        data = response.json()
+        assert any("lowercase letter" in str(error) for error in data["detail"])
+
+    def test_register_weak_password_no_number(self, client, sample_user_data):
+        """Test registration with password missing number"""
+        invalid_data = sample_user_data.copy()
+        invalid_data["password"] = "NoNumbers"
+        invalid_data["confirm_password"] = "NoNumbers"
+        
+        response = client.post("/api/v1/auth/register", json=invalid_data)
+        
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        data = response.json()
+        assert any("number" in str(error) for error in data["detail"])
+
+    def test_register_strong_password_success(self, client, sample_user_data):
+        """Test registration with strong password meeting all requirements"""
+        valid_data = sample_user_data.copy()
+        valid_data["email"] = "strongpass@example.com"  # Different email to avoid conflict
+        valid_data["password"] = "StrongPass123"
+        valid_data["confirm_password"] = "StrongPass123"
+        
+        response = client.post("/api/v1/auth/register", json=valid_data)
+        
+        assert response.status_code == status.HTTP_201_CREATED
+        data = response.json()
+        assert "access_token" in data
+        assert data["token_type"] == "bearer"
+
     def test_login_success(self, client, sample_user_data, created_user):
         """Test successful login via API"""
         login_data = {
