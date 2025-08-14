@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from typing import Optional, List
+import uuid
 from .models import User
 from .schemas import UserCreate, UserUpdate
 
@@ -8,7 +9,13 @@ class UserRepository:
         self.db = db
     
     def create(self, user_data: UserCreate) -> User:
-        user = User(**user_data.model_dump())
+        # Convert UserCreate to dict and remove password fields
+        user_dict = user_data.model_dump()
+        # Remove password fields as they should be handled by AuthService
+        user_dict.pop('password', None)
+        user_dict.pop('confirm_password', None)
+        
+        user = User(**user_dict)
         self.db.add(user)
         self.db.commit()
         self.db.refresh(user)
@@ -17,7 +24,8 @@ class UserRepository:
     def get_by_id(self, user_id: int) -> Optional[User]:
         return self.db.query(User).filter(User.id == user_id).first()
     
-    def get_by_uuid(self, user_uuid: str) -> Optional[User]:
+    def get_by_uuid(self, user_uuid: uuid.UUID) -> Optional[User]:
+        """Get user by UUID object (repository layer always works with UUID objects)"""
         return self.db.query(User).filter(User.uuid == user_uuid).first()
     
     def get_by_email(self, email: str) -> Optional[User]:

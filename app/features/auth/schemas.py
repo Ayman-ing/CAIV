@@ -23,7 +23,6 @@ class UserRegister(BaseModel):
     confirm_password: str = Field(..., min_length=6, max_length=100, description="Password confirmation")
     first_name: str = Field(..., min_length=1, max_length=50, description="User's first name (required)")
     last_name: str = Field(..., min_length=1, max_length=50, description="User's last name (required)")
-    
     @field_validator('first_name', 'last_name')
     @classmethod
     def validate_names(cls, v):
@@ -71,6 +70,7 @@ class TokenData(BaseModel):
     """Schema for token data validation"""
     user_id: Optional[UUID] = None
     email: Optional[str] = None
+    role: Optional[str] = None
 
 class PasswordChange(BaseModel):
     """Schema for changing password"""

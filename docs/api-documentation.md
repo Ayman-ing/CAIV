@@ -1,12 +1,35 @@
-# API Documentation
+# AI Resume Builder API Documentation
 
 ## Overview
 
-The AI Resume Builder API follows RESTful principles with a feature-based architecture. Each feature module contains models, schemas, repositories, services, and routers following the Repository-Service-Router pattern.
+The AI Resume Builder API follows RESTful principles with a clean feature-based architecture. Each feature module contains models, schemas, repositories, services, and routers following the Repository-Service-Router pattern.
+
+## Architecture
+
+- **Repository Layer**: Data access with UUID-based operations
+- **Service Layer**: Business logic with automatic string-to-UUID conversion
+- **Router Layer**: API endpoints with string UUID parameters
+- **Token-Based Authentication**: JWT tokens with embedded user data to minimize database calls
 
 ## Authentication
 
-The API uses UUID-based public identifiers for all external access, keeping internal database IDs private for security.
+The API uses JWT (JSON Web Token) based authentication with enhanced payload containing user information. All user identifiers are UUID-based for security and scalability.
+
+### JWT Token Payload
+```json
+{
+  "sub": "user_uuid", 
+  "role": "user_role",
+  "exp": "expiration_timestamp",
+  "iat": "issued_at_timestamp"
+}
+```
+
+### Authentication Flow
+1. User registers/logs in → receives JWT token
+2. Client includes token in `Authorization: Bearer <token>` header
+3. Token is validated and user data extracted (no database call needed)
+4. Role-based access control enforced
 
 ## Base URL
 
@@ -14,88 +37,393 @@ The API uses UUID-based public identifiers for all external access, keeping inte
 http://localhost:8000/api/v1
 ```
 
-## Response Format
+## Authentication Endpoints
 
-All API responses follow a consistent format:
-
-```json
-{
-  "success": true,
-  "data": {},
-  "message": "Success message",
-  "errors": []
-}
-```
-
-## API Endpoints
-
-### User Management
-
-#### Create User
+### User Registration
 ```http
-POST /users
+POST /auth/register
 ```
 
 **Request Body:**
 ```json
 {
   "email": "user@example.com",
-  "location": "New York, NY",
-  "phone_number": "+1-555-0123"
+  "password": "SecurePassword123!",
+  "confirm_password": "SecurePassword123!",
+  "first_name": "John",
+  "last_name": "Doe"
 }
 ```
 
 **Response:**
 ```json
 {
-  "success": true,
-  "data": {
+  "user": {
     "uuid": "123e4567-e89b-12d3-a456-426614174000",
     "email": "user@example.com",
-    "location": "New York, NY",
-    "phone_number": "+1-555-0123",
-    "created_at": "2025-08-08T15:30:00Z"
+    "first_name": "John",
+    "last_name": "Doe", 
+    "role": "user",
+    "is_active": true,
+    "is_verified": false,
+    "created_at": "2025-08-14T15:30:00Z"
   },
-  "message": "User created successfully"
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer"
 }
 ```
 
-#### Get User
+### User Login
 ```http
-GET /users/{user_uuid}
-```
-
-#### Update User
-```http
-PUT /users/{user_uuid}
-```
-
-#### Delete User
-```http
-DELETE /users/{user_uuid}
-```
-
-### Profile Management
-
-#### Create Profile
-```http
-POST /profiles
+POST /auth/login
 ```
 
 **Request Body:**
 ```json
 {
-  "user_uuid": "123e4567-e89b-12d3-a456-426614174000",
-  "name": "Software Engineer Profile"
+  "email": "user@example.com",
+  "password": "SecurePassword123!"
 }
 ```
 
-#### Get User Profiles
-```http
-GET /users/{user_uuid}/profiles
+**Response:**
+```json
+{
+  "user": {
+    "uuid": "123e4567-e89b-12d3-a456-426614174000",
+    "email": "user@example.com",
+    "first_name": "John",
+    "last_name": "Doe",
+    "role": "user",
+    "is_active": true,
+    "last_login": "2025-08-14T15:30:00Z"
+  },
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer"
+}
 ```
 
-#### Get Profile
+### Change Password
+```http
+POST /auth/change-password
+```
+
+**Headers:**
+```
+Authorization: Bearer <access_token>
+```
+
+**Request Body:**
+```json
+{
+  "current_password": "OldPassword123!",
+  "new_password": "NewPassword123!",
+  "confirm_new_password": "NewPassword123!"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Password changed successfully"
+}
+```
+
+## Response Format
+
+All API responses follow consistent JSON format patterns:
+
+### Success Responses
+Most endpoints return data directly:
+```json
+{
+  "uuid": "123e4567-e89b-12d3-a456-426614174000",
+  "email": "user@example.com",
+  "first_name": "John",
+  "last_name": "Doe"
+}
+```
+
+### Authentication Responses  
+Auth endpoints return user data with tokens:
+```json
+{
+  "user": { ... },
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer"
+}
+```
+
+### Error Responses
+```json
+{
+  "detail": "Error message describing what went wrong"
+}
+```
+
+## Status Codes
+
+- `200 OK` - Request successful
+- `201 Created` - Resource created successfully  
+- `204 No Content` - Success with no response body
+- `400 Bad Request` - Invalid request data
+- `401 Unauthorized` - Authentication required or invalid
+- `403 Forbidden` - Insufficient permissions
+- `404 Not Found` - Resource not found
+- `422 Unprocessable Entity` - Validation errors
+- `500 Internal Server Error` - Server error
+
+## User Management
+
+### Get Current User
+```http
+GET /me
+```
+
+**Headers:**
+```
+Authorization: Bearer <access_token>
+```
+
+**Response:**
+```json
+{
+  "uuid": "123e4567-e89b-12d3-a456-426614174000",
+  "email": "user@example.com",
+  "first_name": "John",
+  "last_name": "Doe",
+  "role": "user",
+  "is_active": true,
+  "is_verified": false,
+  "created_at": "2025-08-14T15:30:00Z",
+  "updated_at": "2025-08-14T15:30:00Z"
+}
+```
+
+### Update Current User
+```http
+PUT /me
+```
+
+**Headers:**
+```
+Authorization: Bearer <access_token>
+```
+
+**Request Body:**
+```json
+{
+  "first_name": "Jane",
+  "last_name": "Smith",
+  "email": "jane.smith@example.com"
+}
+```
+
+**Response:**
+```json
+{
+  "uuid": "123e4567-e89b-12d3-a456-426614174000",
+  "email": "jane.smith@example.com",
+  "first_name": "Jane",
+  "last_name": "Smith",
+  "role": "user",
+  "is_active": true,
+  "updated_at": "2025-08-14T16:30:00Z"
+}
+```
+
+### Delete Current User
+```http
+DELETE /me
+```
+
+**Headers:**
+```
+Authorization: Bearer <access_token>
+```
+
+**Response:** `204 No Content`
+
+## Admin User Management
+
+*Requires admin role*
+
+### Create User (Admin)
+```http
+POST /
+```
+
+**Headers:**
+```
+Authorization: Bearer <admin_access_token>
+```
+
+**Request Body:**
+```json
+{
+  "email": "newuser@example.com",
+  "password": "SecurePassword123!",
+  "confirm_password": "SecurePassword123!",
+  "first_name": "New",
+  "last_name": "User",
+  "role": "user"
+}
+```
+
+**Response:**
+```json
+{
+  "uuid": "456e7890-e89b-12d3-a456-426614174000",
+  "email": "newuser@example.com",
+  "first_name": "New",
+  "last_name": "User",
+  "role": "user",
+  "is_active": true,
+  "is_verified": false,
+  "created_at": "2025-08-14T15:30:00Z"
+}
+```
+
+### List All Users (Admin)
+```http
+GET /?skip=0&limit=100
+```
+
+**Headers:**
+```
+Authorization: Bearer <admin_access_token>
+```
+
+**Response:**
+```json
+[
+  {
+    "uuid": "123e4567-e89b-12d3-a456-426614174000",
+    "email": "user@example.com",
+    "first_name": "John",
+    "last_name": "Doe",
+    "role": "user",
+    "is_active": true,
+    "created_at": "2025-08-14T15:30:00Z"
+  }
+]
+```
+
+### Get User by UUID (Admin)
+```http
+GET /{user_uuid}
+```
+
+**Headers:**
+```
+Authorization: Bearer <admin_access_token>
+```
+
+### Update User by UUID (Admin)
+```http
+PUT /{user_uuid}
+```
+
+**Headers:**
+```
+Authorization: Bearer <admin_access_token>
+```
+
+**Request Body:**
+```json
+{
+  "first_name": "Updated",
+  "last_name": "Name",
+  "is_active": false
+}
+```
+
+### Delete User by UUID (Admin)
+```http
+DELETE /{user_uuid}
+```
+
+**Headers:**
+```
+Authorization: Bearer <admin_access_token>
+```
+
+**Response:** `204 No Content`
+
+### Promote User to Admin
+```http
+POST /{user_uuid}/promote
+```
+
+**Headers:**
+```
+Authorization: Bearer <admin_access_token>
+```
+
+**Response:**
+```json
+{
+  "uuid": "123e4567-e89b-12d3-a456-426614174000",
+  "email": "user@example.com",
+  "first_name": "John", 
+  "last_name": "Doe",
+  "role": "admin",
+  "is_active": true,
+  "updated_at": "2025-08-14T16:30:00Z"
+}
+```
+
+## UUID Best Practices
+
+The API follows a clean UUID flow design:
+
+### URL Parameters
+- All UUID path parameters are accepted as strings
+- Example: `/users/123e4567-e89b-12d3-a456-426614174000`
+
+### Internal Processing  
+- Service layer converts string UUIDs to UUID objects immediately
+- Repository layer works exclusively with UUID objects
+- Database stores UUIDs using PostgreSQL UUID type
+
+### Response Format
+- Pydantic automatically serializes UUID objects to strings in JSON responses
+- Consistent string representation in all API responses
+
+### Security
+- Public UUIDs prevent internal database ID exposure
+- No sequential or predictable identifiers
+- Safe for use in URLs and public APIs
+
+## Validation Rules
+
+### User Registration
+- Email must be valid format and unique
+- Password minimum 6 characters, maximum 100 characters
+- First name and last name required (1-50 characters)
+- Names cannot be empty or whitespace only
+
+### Password Requirements
+- Minimum 6 characters
+- Passwords must match in registration and change password requests
+- Current password verification required for changes
+
+### Role-Based Access
+- `user` role: Access to own data only (`/me` endpoints)
+- `admin` role: Full access to all user management endpoints
+- Admin operations require valid admin token
+
+## Rate Limiting
+
+*Not currently implemented - consider adding for production*
+
+## CORS
+
+The API supports Cross-Origin Resource Sharing (CORS) for web applications.
+
+---
+
+*For additional implementation details, see the [UUID Flow Design](./UUID_FLOW_DESIGN.md) documentation.*
 ```http
 GET /profiles/{profile_uuid}
 ```

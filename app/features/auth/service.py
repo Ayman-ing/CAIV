@@ -4,9 +4,10 @@ import jwt
 from passlib.context import CryptContext
 from fastapi import HTTPException, status
 import os
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from features.users.models import User
+from features.users.models import User, UserRole
 from .repository import AuthRepository
 from .schemas import UserRegister, PasswordChange, PasswordReset, PasswordResetConfirm
 from core.config import get_settings
@@ -68,7 +69,7 @@ class AuthService:
             )
     
     # Business logic methods
-    def register_user(self, user_data: UserRegister) -> Tuple[User, str]:
+    def register_user(self, user_data: BaseModel,role: Optional[str]= UserRole.USER ) -> Tuple[User, str]:
         """Register a new user and return user + access token"""
         # Check if user already exists
         if self.auth_repo.email_exists(user_data.email):
@@ -83,11 +84,15 @@ class AuthService:
             email=user_data.email, 
             password_hash=hashed_password,
             first_name=user_data.first_name,
-            last_name=user_data.last_name
+            last_name=user_data.last_name,
+            role=role
         )
         
-        # Create access token
-        access_token = self.create_access_token(data={"sub": str(user.uuid)})
+        # Create access token with enhanced payload
+        access_token = self.create_access_token(data={
+            "sub": str(user.uuid),
+            "role": user.role.value
+        })
         
         return user, access_token
     
@@ -104,8 +109,11 @@ class AuthService:
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
-        # Create access token
-        access_token = self.create_access_token(data={"sub": str(user.uuid)})
+        # Create access token with enhanced payload
+        access_token = self.create_access_token(data={
+            "sub": str(user.uuid),
+            "role": user.role.value
+        })
 
         return user, access_token
     

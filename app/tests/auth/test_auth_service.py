@@ -52,6 +52,30 @@ class TestAuthService:
         assert isinstance(token_custom, str)
         assert len(token_custom) > 0
 
+    def test_create_access_token_with_enhanced_payload(self):
+        """Test JWT token creation with enhanced payload (name and role)"""
+        data = {
+            "sub": "123e4567-e89b-12d3-a456-426614174000",
+            "name": "John Doe", 
+            "role": "admin"
+        }
+        
+        # Create token
+        token = AuthService.create_access_token(data)
+        assert isinstance(token, str)
+        assert len(token) > 0
+        
+        # Decode and verify enhanced payload
+        secret_key = "test_secret_key_for_testing_only"
+        decoded = jwt.decode(token, secret_key, algorithms=["HS256"])
+        
+        # Verify all fields are present
+        assert decoded["sub"] == "123e4567-e89b-12d3-a456-426614174000"
+        assert decoded["name"] == "John Doe"
+        assert decoded["role"] == "admin"
+        assert "exp" in decoded
+        assert "iat" in decoded
+
     def test_verify_token_valid(self):
         """Test verifying valid JWT token"""
         data = {"sub": "test@example.com"}

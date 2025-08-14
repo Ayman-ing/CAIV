@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from typing import Optional
 import uuid
-from features.users.models import User
+from features.users.models import User, UserRole
 
 class AuthRepository:
     def __init__(self, db: Session):
@@ -25,13 +25,14 @@ class AuthRepository:
             # Invalid UUID format
             return None
     
-    def create_user(self, email: str, password_hash: str, first_name: str = None, last_name: str = None) -> User:
+    def create_user(self, email: str, password_hash: str, first_name: str = None, last_name: str = None,role : str = UserRole.USER) -> User:
         """Create a new user"""
         user = User(
             email=email,
             password_hash=password_hash,
             first_name=first_name,
-            last_name=last_name
+            last_name=last_name,
+            role=role
         )
         self.db.add(user)
         self.db.commit()

@@ -102,7 +102,10 @@ def created_user(db_session, auth_service, sample_user_data):
 @pytest.fixture
 def auth_headers(created_user, auth_service):
     """Create authentication headers for testing protected endpoints"""
-    token = auth_service.create_access_token(data={"sub": str(created_user.uuid)})
+    token = auth_service.create_access_token(data={
+        "sub": str(created_user.uuid),
+        "role": created_user.role.value
+    })
     return {"Authorization": f"Bearer {token}"}
 
 
