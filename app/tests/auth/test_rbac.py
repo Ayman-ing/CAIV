@@ -2,7 +2,7 @@
 Tests for Role-Based Access Control (RBAC)
 """
 import pytest
-from fastapi import HTTPException
+from core.exceptions import HTTPException
 from unittest.mock import Mock
 
 from core.rbac import admin_required, check_access, ensure_access, require_admin
@@ -69,7 +69,7 @@ class TestRBACFunctions:
             ensure_access(user, resource_user_id=999, resource_name="profile")
         
         assert exc_info.value.status_code == 403
-        assert "Cannot access profile" in str(exc_info.value.detail)
+        assert "Cannot access profile" in str(exc_info.value.message)
     
     def test_ensure_access_default_resource_name(self):
         """Test default resource name in error message"""
@@ -81,7 +81,7 @@ class TestRBACFunctions:
             ensure_access(user, resource_user_id=999)  # No resource_name provided
         
         assert exc_info.value.status_code == 403
-        assert "Cannot access resource" in str(exc_info.value.detail)
+        assert "Cannot access resource" in str(exc_info.value.message)
 
 
 @pytest.mark.asyncio
@@ -109,7 +109,7 @@ class TestAdminRequiredDependency:
             await admin_required(regular_user)
         
         assert exc_info.value.status_code == 403
-        assert "Admin access required" in str(exc_info.value.detail)
+        assert "Admin access required" in str(exc_info.value.message)
     
     async def test_require_admin_alias(self):
         """Test that require_admin alias works the same"""
@@ -132,7 +132,7 @@ class TestAdminRequiredDependency:
             await admin_required(user)
         
         assert exc_info.value.status_code == 403
-        assert "Admin access required" in str(exc_info.value.detail)
+        assert "Admin access required" in str(exc_info.value.message)
 
 
 class TestRoleBasedScenarios:
@@ -232,4 +232,4 @@ class TestEdgeCases:
             with pytest.raises(HTTPException) as exc_info:
                 ensure_access(user, resource_user_id=999, resource_name=resource_name)
             
-            assert f"Cannot access {resource_name}" in str(exc_info.value.detail)
+            assert f"Cannot access {resource_name}" in str(exc_info.value.message)

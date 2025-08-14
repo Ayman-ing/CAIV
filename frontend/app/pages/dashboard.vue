@@ -1,3 +1,146 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useAuthStore } from '~/composables/useAuth'
+
+// Protect this route - require authentication
+definePageMeta({
+  middleware: 'auth'
+})
+
+// Get user data from auth store
+const { user, userName, logout } = useAuthStore()
+
+// Handle logout
+const handleLogout = async () => {
+  try {
+    await logout()
+  } catch (error) {
+    console.error('Logout error:', error)
+  }
+}
+
+// State for mobile menu and user dropdown
+const mobileMenuOpen = ref(false)
+const userMenuOpen = ref(false)
+
+// Toggle mobile menu
+const toggleMobileMenu = () => {
+  mobileMenuOpen.value = !mobileMenuOpen.value
+}
+
+// Toggle user menu
+const toggleUserMenu = () => {
+  userMenuOpen.value = !userMenuOpen.value
+}
+
+// Define activity interface
+interface Activity {
+  id: string
+  type: 'create' | 'edit' | 'download' | 'share' | 'upload'
+  title: string
+  action: string
+  date: Date
+}
+
+// Reactive data
+const recentActivities = ref<Activity[]>([
+  { 
+    id: '1', 
+    type: 'create', 
+    title: 'Created "Software Engineer Resume"', 
+    action: 'Created a new document', 
+    date: new Date('2024-08-10T12:00:00Z') 
+  },
+  { 
+    id: '2', 
+    type: 'edit', 
+    title: 'Updated "Marketing Manager Resume"', 
+    action: 'Updated profile information', 
+    date: new Date('2024-08-09T14:30:00Z') 
+  },
+  { 
+    id: '3', 
+    type: 'download', 
+    title: 'Downloaded "Data Analyst Resume"', 
+    action: 'Downloaded as PDF', 
+    date: new Date('2024-08-08T09:15:00Z') 
+  },
+  { 
+    id: '4', 
+    type: 'share', 
+    title: 'Shared "Product Manager Resume"', 
+    action: 'Shared via link', 
+    date: new Date('2024-08-07T16:45:00Z') 
+  }
+])
+
+// Helper methods
+const getActivityIcon = (type: Activity['type']) => {
+  const icons = {
+    create: 'lucide:plus-circle',
+    edit: 'lucide:edit',
+    download: 'lucide:download',
+    share: 'lucide:share',
+    upload: 'lucide:upload'
+  }
+  return icons[type]
+}
+
+const getActivityBgColor = (type: Activity['type']) => {
+  const colors = {
+    create: 'bg-green-50 dark:bg-green-900/30',
+    edit: 'bg-blue-50 dark:bg-blue-900/30',
+    download: 'bg-purple-50 dark:bg-purple-900/30',
+    share: 'bg-orange-50 dark:bg-orange-900/30',
+    upload: 'bg-cyan-50 dark:bg-cyan-900/30'
+  }
+  return colors[type]
+}
+
+const getActivityIconColor = (type: Activity['type']) => {
+  const colors = {
+    create: 'text-green-600 dark:text-green-400',
+    edit: 'text-blue-600 dark:text-blue-400',
+    download: 'text-purple-600 dark:text-purple-400',
+    share: 'text-orange-600 dark:text-orange-400',
+    upload: 'text-cyan-600 dark:text-cyan-400'
+  }
+  return colors[type]
+}
+
+const formatDate = (date: Date) => {
+  const now = new Date()
+  const diffTime = now.getTime() - date.getTime()
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+  
+  if (diffDays === 0) {
+    return 'Today'
+  } else if (diffDays === 1) {
+    return 'Yesterday'
+  } else if (diffDays < 7) {
+    return `${diffDays} days ago`
+  } else {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
+}
+
+// User display helpers
+const getUserDisplayName = () => {
+  if (!user.value) return 'User'
+  return `${user.value.first_name} ${user.value.last_name}`.trim() || user.value.email
+}
+
+const getUserInitials = () => {
+  if (!user.value) return 'U'
+  const firstInitial = user.value.first_name?.[0] || ''
+  const lastInitial = user.value.last_name?.[0] || ''
+  if (firstInitial && lastInitial) {
+    return `${firstInitial}${lastInitial}`.toUpperCase()
+  }
+  return user.value.email?.[0]?.toUpperCase() || 'U'
+}
+</script>
+
 <template>
   <div class="min-h-screen bg-white dark:bg-gray-900 font-sans antialiased">
     <!-- Navigation -->
@@ -41,16 +184,16 @@
             <div class="relative">
               <Button variant="ghost" size="sm" class="flex items-center space-x-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all">
                 <div class="w-9 h-9 bg-gradient-to-br from-blue-600 to-blue-500 dark:from-blue-500 dark:to-blue-400 rounded-full flex items-center justify-center shadow-sm">
-                  <span class="text-white text-sm font-medium">JD</span>
+                  <span class="text-white text-sm font-medium">{{ getUserInitials() }}</span>
                 </div>
-                <span class="hidden md:block text-gray-900 dark:text-white font-medium">John Doe</span>
+                <span class="hidden md:block text-gray-900 dark:text-white font-medium">{{ getUserDisplayName() }}</span>
                 <Icon name="lucide:chevron-down" class="w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform" :class="{ 'rotate-180': userMenuOpen }" @click="toggleUserMenu" />
               </Button>
               <!-- Dropdown Menu -->
               <transition enter-active-class="transition ease-out duration-200" enter-from-class="opacity-0 scale-95" enter-to-class="opacity-100 scale-100" leave-active-class="transition ease-in duration-150" leave-from-class="opacity-100 scale-100" leave-to-class="opacity-0 scale-95">
                 <div v-if="userMenuOpen" class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-2 z-50">
                   <Button variant="ghost" size="sm" class="w-full text-left px-4 py-2 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800">Profile</Button>
-                  <Button variant="ghost" size="sm" class="w-full text-left px-4 py-2 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800">Sign Out</Button>
+                  <Button variant="ghost" size="sm" class="w-full text-left px-4 py-2 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800" @click="handleLogout">Sign Out</Button>
                 </div>
               </transition>
             </div>
@@ -205,114 +348,6 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref } from 'vue';
-
-// State for mobile menu and user dropdown
-const mobileMenuOpen = ref(false);
-const userMenuOpen = ref(false);
-
-// Toggle mobile menu
-const toggleMobileMenu = () => {
-  mobileMenuOpen.value = !mobileMenuOpen.value;
-};
-
-// Toggle user menu
-const toggleUserMenu = () => {
-  userMenuOpen.value = !userMenuOpen.value;
-};
-
-// Define activity interface
-interface Activity {
-  id: string;
-  type: 'create' | 'edit' | 'download' | 'share' | 'upload';
-  title: string;
-  action: string;
-  date: Date;
-}
-
-// Reactive data
-const recentActivities = ref<Activity[]>([
-  { 
-    id: '1', 
-    type: 'create', 
-    title: 'Created "Software Engineer Resume"', 
-    action: 'Created a new document', 
-    date: new Date('2024-08-10T12:00:00Z') 
-  },
-  { 
-    id: '2', 
-    type: 'edit', 
-    title: 'Updated "Marketing Manager Resume"', 
-    action: 'Updated profile information', 
-    date: new Date('2024-08-09T14:30:00Z') 
-  },
-  { 
-    id: '3', 
-    type: 'download', 
-    title: 'Downloaded "Data Analyst Resume"', 
-    action: 'Downloaded as PDF', 
-    date: new Date('2024-08-08T09:15:00Z') 
-  },
-  { 
-    id: '4', 
-    type: 'share', 
-    title: 'Shared "Product Manager Resume"', 
-    action: 'Shared via link', 
-    date: new Date('2024-08-07T16:45:00Z') 
-  }
-]);
-
-// Helper methods
-const getActivityIcon = (type: Activity['type']) => {
-  const icons = {
-    create: 'lucide:plus-circle',
-    edit: 'lucide:edit',
-    download: 'lucide:download',
-    share: 'lucide:share',
-    upload: 'lucide:upload'
-  };
-  return icons[type];
-};
-
-const getActivityBgColor = (type: Activity['type']) => {
-  const colors = {
-    create: 'bg-green-50 dark:bg-green-900/30',
-    edit: 'bg-blue-50 dark:bg-blue-900/30',
-    download: 'bg-purple-50 dark:bg-purple-900/30',
-    share: 'bg-orange-50 dark:bg-orange-900/30',
-    upload: 'bg-cyan-50 dark:bg-cyan-900/30'
-  };
-  return colors[type];
-};
-
-const getActivityIconColor = (type: Activity['type']) => {
-  const colors = {
-    create: 'text-green-600 dark:text-green-400',
-    edit: 'text-blue-600 dark:text-blue-400',
-    download: 'text-purple-600 dark:text-purple-400',
-    share: 'text-orange-600 dark:text-orange-400',
-    upload: 'text-cyan-600 dark:text-cyan-400'
-  };
-  return colors[type];
-};
-
-const formatDate = (date: Date) => {
-  const now = new Date();
-  const diffTime = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  
-  if (diffDays === 0) {
-    return 'Today';
-  } else if (diffDays === 1) {
-    return 'Yesterday';
-  } else if (diffDays < 7) {
-    return `${diffDays} days ago`;
-  } else {
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  }
-};
-</script>
 
 <style scoped>
 /* Custom animation for fade-in */

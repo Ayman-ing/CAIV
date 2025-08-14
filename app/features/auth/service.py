@@ -2,7 +2,8 @@ from datetime import datetime, timedelta
 from typing import Optional, Tuple
 import jwt
 from passlib.context import CryptContext
-from fastapi import HTTPException, status
+from fastapi import status
+from core.exceptions import HTTPException
 import os
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -58,13 +59,13 @@ class AuthService:
         except jwt.ExpiredSignatureError:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token has expired",
+                message="Token has expired",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         except jwt.PyJWTError:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Could not validate credentials",
+                message="Could not validate credentials",
                 headers={"WWW-Authenticate": "Bearer"},
             )
     
@@ -75,7 +76,7 @@ class AuthService:
         if self.auth_repo.email_exists(user_data.email):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email already registered"
+                message="Email already registered"
             )
         
         # Create new user
@@ -105,7 +106,7 @@ class AuthService:
         if not user or not self.verify_password(password, user.password_hash):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Incorrect email or password",
+                message="Incorrect email or password",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
@@ -123,7 +124,7 @@ class AuthService:
         if not self.verify_password(password_data.current_password, user.password_hash):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Current password is incorrect"
+                message="Current password is incorrect"
             )
         
         # Update password
@@ -151,7 +152,7 @@ class AuthService:
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
+                message="User not found"
             )
         
         # Update password
@@ -184,16 +185,16 @@ class AuthService:
             if email is None or token_type != "password_reset":
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid password reset token"
+                    message="Invalid password reset token"
                 )
             return email
         except jwt.ExpiredSignatureError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Password reset token has expired"
+                message="Password reset token has expired"
             )
         except jwt.PyJWTError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid password reset token"
+                message="Invalid password reset token"
             )

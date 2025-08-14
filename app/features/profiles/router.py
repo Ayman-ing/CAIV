@@ -4,7 +4,8 @@ Profile Router
 FastAPI routes for user profile management.
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
+from core.exceptions import HTTPException
 from sqlalchemy.orm import Session
 
 from db.session import get_db
@@ -33,12 +34,12 @@ async def create_profile(
     """Create a new profile for the specified user"""
     # Ensure user can only create profiles for themselves (or add admin check later)
     if current_user.id != user_id:
-        raise HTTPException(status_code=403, detail="Cannot create profile for another user")
+        raise HTTPException(status_code=403, message="Cannot create profile for another user")
     
     try:
         return service.create_profile(user_id, profile_data)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, message=str(e))
 
 
 @router.get("/", response_model=list[ProfileResponse])
@@ -50,7 +51,7 @@ async def get_user_profiles(
     """Get all profiles for the specified user"""
     # Ensure user can only access their own profiles (or add admin check later)
     if current_user.id != user_id:
-        raise HTTPException(status_code=403, detail="Cannot access another user's profiles")
+        raise HTTPException(status_code=403, message="Cannot access another user's profiles")
     
     return service.get_user_profiles(user_id)
 
@@ -65,11 +66,11 @@ async def get_profile(
     """Get a specific profile for the user"""
     # Ensure user can only access their own profiles
     if current_user.id != user_id:
-        raise HTTPException(status_code=403, detail="Cannot access another user's profile")
+        raise HTTPException(status_code=403, message="Cannot access another user's profile")
     
     profile = service.get_profile(profile_id, user_id)
     if not profile:
-        raise HTTPException(status_code=404, detail="Profile not found")
+        raise HTTPException(status_code=404, message="Profile not found")
     return profile
 
 
@@ -84,12 +85,12 @@ async def update_profile(
     """Update a specific profile"""
     # Check ownership
     if current_user.id != user_id:
-        raise HTTPException(status_code=403, detail="Cannot update another user's profile")
+        raise HTTPException(status_code=403, message="Cannot update another user's profile")
     
     try:
         return service.update_profile(profile_id, user_id, profile_data)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, message=str(e))
 
 
 @router.delete("/{profile_id}")
@@ -102,10 +103,10 @@ async def delete_profile(
     """Delete a specific profile"""
     # Check ownership
     if current_user.id != user_id:
-        raise HTTPException(status_code=403, detail="Cannot delete another user's profile")
+        raise HTTPException(status_code=403, message="Cannot delete another user's profile")
     
     success = service.delete_profile(profile_id, user_id)
     if not success:
-        raise HTTPException(status_code=404, detail="Profile not found")
+        raise HTTPException(status_code=404, message="Profile not found")
     
     return {"message": "Profile deleted successfully"}

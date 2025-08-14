@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
+from core.exceptions import HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -31,7 +32,7 @@ def get_work_experience(
     service = WorkExperienceService(db)
     work_exp = service.get_work_experience_by_uuid(work_exp_uuid)
     if not work_exp:
-        raise HTTPException(status_code=404, detail="Work experience not found")
+        raise HTTPException(status_code=404, message="Work experience not found")
     return work_exp
 
 @router.get("/user/{user_uuid}", response_model=List[WorkExperienceResponse])
@@ -52,7 +53,7 @@ def update_work_experience(work_exp_uuid: str, work_exp_data: WorkExperienceUpda
     service = WorkExperienceService(db)
     work_exp = service.update_work_experience_by_uuid(work_exp_uuid, work_exp_data)
     if not work_exp:
-        raise HTTPException(status_code=404, detail="Work experience not found")
+        raise HTTPException(status_code=404, message="Work experience not found")
     return work_exp
 
 @router.delete("/{work_exp_uuid}", status_code=status.HTTP_204_NO_CONTENT)
@@ -60,4 +61,4 @@ def delete_work_experience(work_exp_uuid: str, db: Session = Depends(get_db)):
     """Delete a work experience by UUID"""
     service = WorkExperienceService(db)
     if not service.delete_work_experience_by_uuid(work_exp_uuid):
-        raise HTTPException(status_code=404, detail="Work experience not found")
+        raise HTTPException(status_code=404, message="Work experience not found")

@@ -3,7 +3,7 @@ Unit tests for AuthService
 """
 import pytest
 from datetime import datetime, timedelta
-from fastapi import HTTPException
+from core.exceptions import HTTPException
 import jwt
 import os
 
@@ -131,7 +131,7 @@ class TestAuthService:
             auth_service.register_user(user_register)
         
         assert exc_info.value.status_code == 400
-        assert "already registered" in exc_info.value.detail.lower()
+        assert "already registered" in exc_info.value.message.lower()
 
     def test_authenticate_user_success(self, auth_service, sample_user_data, created_user):
         """Test successful user authentication"""
@@ -153,7 +153,7 @@ class TestAuthService:
             auth_service.authenticate_user("wrong@example.com", sample_user_data["password"])
         
         assert exc_info.value.status_code == 401
-        assert "incorrect" in exc_info.value.detail.lower()
+        assert "incorrect" in exc_info.value.message.lower()
 
     def test_authenticate_user_wrong_password(self, auth_service, sample_user_data, created_user):
         """Test authentication with wrong password"""
@@ -161,7 +161,7 @@ class TestAuthService:
             auth_service.authenticate_user(sample_user_data["email"], "wrong_password")
         
         assert exc_info.value.status_code == 401
-        assert "incorrect" in exc_info.value.detail.lower()
+        assert "incorrect" in exc_info.value.message.lower()
 
     def test_change_password_success(self, auth_service, created_user, sample_user_data):
         """Test successful password change"""
@@ -194,7 +194,7 @@ class TestAuthService:
             auth_service.change_user_password(created_user, password_change)
         
         assert exc_info.value.status_code == 400
-        assert "incorrect" in exc_info.value.detail.lower()
+        assert "incorrect" in exc_info.value.message.lower()
 
 
 class TestPasswordValidation:

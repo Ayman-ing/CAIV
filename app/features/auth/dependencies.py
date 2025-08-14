@@ -1,4 +1,5 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, status
+from core.exceptions import HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -25,7 +26,7 @@ async def get_current_user(
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
+        message="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
     
@@ -61,7 +62,7 @@ async def get_current_user_from_token(
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
+        message="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
     
@@ -113,7 +114,7 @@ async def require_admin_from_token(
     if token_data.role != UserRole.ADMIN.value:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required"
+            message="Admin access required"
         )
     return token_data
 
@@ -138,5 +139,5 @@ def ensure_access_from_token(
     if not check_access_from_token(token_data, resource_user_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Cannot access {resource_name}"
+            message=f"Cannot access {resource_name}"
         )

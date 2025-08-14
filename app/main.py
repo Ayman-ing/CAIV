@@ -7,7 +7,7 @@ import logging
 
 from core.config import get_settings
 from core.logging import setup_logging
-#from core.exceptions import setup_exception_handlers
+from core.exceptions import setup_exception_handlers
 from features import feature_routers
 
 # Setup
@@ -32,7 +32,7 @@ app.add_middleware(
 )
 
 # Exception handlers
-#setup_exception_handlers(app)
+setup_exception_handlers(app)
 
 for router in feature_routers:
     app.include_router(router)

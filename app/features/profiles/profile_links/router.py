@@ -5,7 +5,8 @@ FastAPI routes for user link management.
 """
 
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
+from core.exceptions import HTTPException
 from sqlalchemy.orm import Session
 
 from db.session import get_db
@@ -34,7 +35,7 @@ async def create_user_link(
     try:
         return service.create_link(current_user.id, link_data)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, message=str(e))
 
 
 @router.get("/{link_uuid}", response_model=ProfileLinkResponse)
@@ -46,11 +47,11 @@ async def get_user_link(
     """Get a specific user link by UUID"""
     link = service.get_link_by_uuid(link_uuid)
     if not link:
-        raise HTTPException(status_code=404, detail="User link not found")
+        raise HTTPException(status_code=404, message="User link not found")
     
     # Check ownership
     if not service.check_link_ownership(link_uuid, current_user.id):
-        raise HTTPException(status_code=403, detail="Not authorized to access this link")
+        raise HTTPException(status_code=403, message="Not authorized to access this link")
     
     return link
 
@@ -66,7 +67,7 @@ async def get_profile_links(
     """Get all links for a specific user (UUID-based)"""
     # For now, users can only access their own links
     if user_uuid != current_user.uuid:
-        raise HTTPException(status_code=403, detail="Not authorized to access other users' links")
+        raise HTTPException(status_code=403, message="Not authorized to access other users' links")
     
     return service.get_profile_links(current_user.id, skip, limit)
 
@@ -81,15 +82,15 @@ async def update_profile_link(
     """Update a user link"""
     # Check ownership
     if not service.check_link_ownership(link_uuid, current_user.id):
-        raise HTTPException(status_code=403, detail="Not authorized to update this link")
+        raise HTTPException(status_code=403, message="Not authorized to update this link")
     
     try:
         updated_link = service.update_link(link_uuid, link_update)
         if not updated_link:
-            raise HTTPException(status_code=404, detail="User link not found")
+            raise HTTPException(status_code=404, message="User link not found")
         return updated_link
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, message=str(e))
 
 
 @router.delete("/{link_uuid}", status_code=204)
@@ -101,8 +102,8 @@ async def delete_user_link(
     """Delete a user link"""
     # Check ownership
     if not service.check_link_ownership(link_uuid, current_user.id):
-        raise HTTPException(status_code=403, detail="Not authorized to delete this link")
+        raise HTTPException(status_code=403, message="Not authorized to delete this link")
     
     success = service.delete_link(link_uuid)
     if not success:
-        raise HTTPException(status_code=404, detail="User link not found")
+        raise HTTPException(status_code=404, message="User link not found")

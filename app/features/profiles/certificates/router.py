@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
+from core.exceptions import HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -20,7 +21,7 @@ def create_certificate(
     try:
         return service.create_certificate(certificate_data, profile_id=profile_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, message=str(e))
 
 @router.get("/{certificate_uuid}", response_model=CertificateResponse)
 def get_certificate(certificate_uuid: str, db: Session = Depends(get_db)):
@@ -28,7 +29,7 @@ def get_certificate(certificate_uuid: str, db: Session = Depends(get_db)):
     service = CertificateService(db)
     certificate = service.get_certificate_by_uuid(certificate_uuid)
     if not certificate:
-        raise HTTPException(status_code=404, detail="Certificate not found")
+        raise HTTPException(status_code=404, message="Certificate not found")
     return certificate
 
 @router.get("/user/{user_uuid}", response_model=List[CertificateResponse])
@@ -51,7 +52,7 @@ def update_certificate(certificate_uuid: str, certificate_data: CertificateUpdat
     service = CertificateService(db)
     certificate = service.update_certificate_by_uuid(certificate_uuid, certificate_data)
     if not certificate:
-        raise HTTPException(status_code=404, detail="Certificate not found")
+        raise HTTPException(status_code=404, message="Certificate not found")
     return certificate
 
 @router.delete("/{certificate_uuid}", status_code=status.HTTP_204_NO_CONTENT)
@@ -59,4 +60,4 @@ def delete_certificate(certificate_uuid: str, db: Session = Depends(get_db)):
     """Delete a certificate by UUID"""
     service = CertificateService(db)
     if not service.delete_certificate_by_uuid(certificate_uuid):
-        raise HTTPException(status_code=404, detail="Certificate not found")
+        raise HTTPException(status_code=404, message="Certificate not found")

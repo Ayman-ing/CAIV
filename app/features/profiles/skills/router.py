@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
+from core.exceptions import HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -20,7 +21,7 @@ def create_skill(
     try:
         return service.create_skill(skill_data, profile_id=profile_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, message=str(e))
 
 @router.get("/", response_model=list[SkillResponse])
 def get_profile_skills(
@@ -43,7 +44,7 @@ def get_skill(
     service = SkillService(db)
     skill = service.get_skill_by_uuid(skill_uuid)
     if not skill:
-        raise HTTPException(status_code=404, detail="Skill not found")
+        raise HTTPException(status_code=404, message="Skill not found")
     return skill
 
 @router.get("/user/{user_uuid}", response_model=List[SkillResponse])
@@ -66,7 +67,7 @@ def update_skill(skill_uuid: str, skill_data: SkillUpdate, db: Session = Depends
     service = SkillService(db)
     skill = service.update_skill_by_uuid(skill_uuid, skill_data)
     if not skill:
-        raise HTTPException(status_code=404, detail="Skill not found")
+        raise HTTPException(status_code=404, message="Skill not found")
     return skill
 
 @router.delete("/{skill_uuid}", status_code=status.HTTP_204_NO_CONTENT)
@@ -74,4 +75,4 @@ def delete_skill(skill_uuid: str, db: Session = Depends(get_db)):
     """Delete a skill by UUID"""
     service = SkillService(db)
     if not service.delete_skill_by_uuid(skill_uuid):
-        raise HTTPException(status_code=404, detail="Skill not found")
+        raise HTTPException(status_code=404, message="Skill not found")

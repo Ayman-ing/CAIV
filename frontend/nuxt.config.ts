@@ -15,5 +15,10 @@ export default defineNuxtConfig({
       apiBase: process.env.API_BASE_URL || 'http://localhost:8000',
     }
   },
+  nitro: {
+    experimental: {
+      wasm: true
+    }
+  },
   ssr: false,
 })

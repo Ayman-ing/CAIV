@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
+from core.exceptions import HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -20,7 +21,7 @@ def get_user_me(current_user: TokenData = Depends(get_current_user_from_token), 
     service = UserService(db)
     user = service.get_user_by_uuid(current_user.user_id)
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, message="User not found")
     return user
 
 
@@ -32,11 +33,11 @@ def update_user_me(user_data: UserUpdate, current_user: TokenData = Depends(get_
     # First get user by UUID to get the ID
     user = service.get_user_by_uuid(current_user.user_id)
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, message="User not found")
 
     updated_user = service.update_user_by_uuid(user.uuid, user_data)
     if not updated_user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, message="User not found")
     return updated_user
 
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
@@ -44,7 +45,7 @@ def delete_user( db: Session = Depends(get_db), current_user: TokenData = Depend
     """Delete a user"""
     service = UserService(db)
     if not service.delete_user_by_uuid(current_user.user_id):
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, message="User not found")
 
 
 # Admin-only routes
@@ -70,7 +71,7 @@ def create_user(user_data: UserCreate, db: Session = Depends(get_db), admin_user
         # Convert User to UserResponse
         return UserResponse.model_validate(user)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, message=str(e))
     
 @router.get("/", response_model=List[UserResponse])
 def list_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), admin_user: TokenData = Depends(require_admin_from_token)):
@@ -83,7 +84,7 @@ def get_user_by_uuid_admin(user_uuid: str, db: Session = Depends(get_db), admin_
     service = UserService(db)
     user = service.get_user_by_uuid(user_uuid)
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, message="User not found")
     return user
 
 
@@ -93,7 +94,7 @@ def update_user_by_uuid_admin(user_uuid: str, user_data: UserUpdate, db: Session
     service = UserService(db)
     updated_user = service.update_user_by_uuid(user_uuid, user_data)
     if not updated_user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, message="User not found")
     return updated_user
 
 
@@ -102,7 +103,7 @@ def delete_user_by_uuid_admin(user_uuid: str, db: Session = Depends(get_db), adm
     """Delete user by UUID - Admin only"""
     service = UserService(db)
     if not service.delete_user_by_uuid(user_uuid):
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, message="User not found")
 
 
 @router.post("/{user_uuid}/promote", response_model=UserResponse)
@@ -111,10 +112,10 @@ def promote_user_to_admin(user_uuid: str, db: Session = Depends(get_db), admin_u
     service = UserService(db)
     user = service.get_user_by_uuid(user_uuid)
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, message="User not found")
 
     if user.role == UserRole.ADMIN:
-        raise HTTPException(status_code=400, detail="User is already an admin")
+        raise HTTPException(status_code=400, message="User is already an admin")
     
     # Update user role to admin
     user_data = UserUpdate(role=UserRole.ADMIN)

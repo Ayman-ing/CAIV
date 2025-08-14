@@ -241,7 +241,14 @@
 </template>
 
 <script setup lang="ts">
+import { useAuthStore } from '~/composables/useAuth'
 
+// Protect this route - only allow guests (redirect authenticated users)
+definePageMeta({
+  middleware: 'guest'
+})
+
+const { login, isLoading: authLoading } = useAuthStore()
 
 // SEO Meta
 useSeoMeta({
@@ -267,7 +274,7 @@ const generalError = ref<string>('')
 const showForgotPassword = ref<boolean>(false)
 
 // Loading States
-const isLoading = ref<boolean>(false)
+const isLoading = computed(() => authLoading.value)
 const isGoogleLoading = ref<boolean>(false)
 const isGithubLoading = ref<boolean>(false)
 const isForgotLoading = ref<boolean>(false)
@@ -304,17 +311,16 @@ const validateForm = (): boolean => {
 const handleLogin = async () => {
   if (!validateForm()) return
 
-  isLoading.value = true
   generalError.value = ''
 
   try {
-    // TODO: Replace with actual backend API call
-    await new Promise(resolve => setTimeout(resolve, 1500)) // Simulate API call
-    await navigateTo('/dashboard')
+    await login({
+      email: email.value,
+      password: password.value
+    })
+    // Navigation will be handled by the auth store after successful login
   } catch (error: any) {
     generalError.value = error.message || 'Invalid credentials. Please try again.'
-  } finally {
-    isLoading.value = false
   }
 }
 

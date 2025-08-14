@@ -5,7 +5,8 @@ FastAPI routes for language skills management.
 """
 
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, status, Query
+from core.exceptions import HTTPException
 from sqlalchemy.orm import Session
 
 from db.session import get_db
@@ -35,12 +36,12 @@ async def create_language(
     """Create a new language skill for the specified profile"""
     # Check ownership
     if current_user.id != user_id:
-        raise HTTPException(status_code=403, detail="Cannot create language for another user")
+        raise HTTPException(status_code=403, message="Cannot create language for another user")
     
     try:
         return service.create_language(profile_id, language_data)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, message=str(e))
 
 @router.get("/", response_model=list[LanguageResponse])
 async def get_profile_languages(
@@ -52,7 +53,7 @@ async def get_profile_languages(
     """Get all languages for the specified profile"""
     # Check ownership
     if current_user.id != user_id:
-        raise HTTPException(status_code=403, detail="Cannot access another user's languages")
+        raise HTTPException(status_code=403, message="Cannot access another user's languages")
     
     return service.get_languages_by_profile(profile_id)
 
@@ -67,11 +68,11 @@ async def get_language(
     """Get a specific language by UUID"""
     language = service.get_language_by_uuid(language_uuid)
     if not language:
-        raise HTTPException(status_code=404, detail="Language not found")
+        raise HTTPException(status_code=404, message="Language not found")
     
     # Check ownership
     if not service.check_language_ownership(language_uuid, current_user.id):
-        raise HTTPException(status_code=403, detail="Not authorized to access this language")
+        raise HTTPException(status_code=403, message="Not authorized to access this language")
     
     return language
 
@@ -88,7 +89,7 @@ async def get_user_languages(
     # For now, users can only access their own languages
     # In the future, this could be extended for public profiles
     if user_uuid != current_user.uuid:
-        raise HTTPException(status_code=403, detail="Not authorized to access other users' languages")
+        raise HTTPException(status_code=403, message="Not authorized to access other users' languages")
     
     return service.get_user_languages(current_user.id, skip, limit)
 
@@ -103,15 +104,15 @@ async def update_language(
     """Update a language skill"""
     # Check ownership
     if not service.check_language_ownership(language_uuid, current_user.id):
-        raise HTTPException(status_code=403, detail="Not authorized to update this language")
+        raise HTTPException(status_code=403, message="Not authorized to update this language")
     
     try:
         updated_language = service.update_language(language_uuid, language_update)
         if not updated_language:
-            raise HTTPException(status_code=404, detail="Language not found")
+            raise HTTPException(status_code=404, message="Language not found")
         return updated_language
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, message=str(e))
 
 
 @router.delete("/{language_uuid}", status_code=204)
@@ -123,11 +124,11 @@ async def delete_language(
     """Delete a language skill"""
     # Check ownership
     if not service.check_language_ownership(language_uuid, current_user.id):
-        raise HTTPException(status_code=403, detail="Not authorized to delete this language")
+        raise HTTPException(status_code=403, message="Not authorized to delete this language")
     
     success = service.delete_language(language_uuid)
     if not success:
-        raise HTTPException(status_code=404, detail="Language not found")
+        raise HTTPException(status_code=404, message="Language not found")
 
 
 @router.get("/user/{user_uuid}/count")
@@ -138,7 +139,7 @@ async def get_user_language_count(
 ):
     """Get count of languages for a user"""
     if user_uuid != current_user.uuid:
-        raise HTTPException(status_code=403, detail="Not authorized to access other users' data")
+        raise HTTPException(status_code=403, message="Not authorized to access other users' data")
     
     count = service.get_user_language_count(current_user.id)
     return {"count": count}

@@ -1,8 +1,7 @@
 """
 Global exception handlers and custom exceptions
 """
-'''
-from fastapi import HTTPException, Request, status
+from fastapi import FastAPI, HTTPException as FastAPIHTTPException, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -10,6 +9,21 @@ import logging
 from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
+
+
+# Custom HTTPException that accepts 'message' instead of 'detail'
+class HTTPException(FastAPIHTTPException):
+    """Custom HTTPException that uses 'message' field for consistency"""
+    
+    def __init__(
+        self,
+        status_code: int,
+        message: str,
+        headers: Optional[Dict[str, Any]] = None
+    ):
+        # Map 'message' to 'detail' for FastAPI compatibility
+        super().__init__(status_code=status_code, detail=message, headers=headers)
+        self.message = message
 
 
 # Custom Exceptions
@@ -142,8 +156,11 @@ async def app_exception_handler(request: Request, exc: AppException) -> JSONResp
 
 async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
     """Handler for FastAPI HTTP exceptions"""
+    # Use 'message' if available (our custom HTTPException), otherwise use 'detail'
+    message = getattr(exc, 'message', exc.detail)
+    
     logger.warning(
-        f"HTTP exception: {exc.status_code} - {exc.detail}",
+        f"HTTP exception: {exc.status_code} - {message}",
         extra={
             "status_code": exc.status_code,
             "path": str(request.url),
@@ -156,7 +173,7 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
         content={
             "error": {
                 "code": "HTTP_ERROR",
-                "message": exc.detail,
+                "message": message,
                 "details": {}
             },
             "path": str(request.url),
@@ -272,4 +289,3 @@ def setup_exception_handlers(app):
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
     app.add_exception_handler(SQLAlchemyError, database_exception_handler)
     app.add_exception_handler(Exception, general_exception_handler)
-'''

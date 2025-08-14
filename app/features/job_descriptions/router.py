@@ -5,7 +5,8 @@ FastAPI routes for job description management.
 """
 
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
+from core.exceptions import HTTPException
 from sqlalchemy.orm import Session
 
 from db.session import get_db
@@ -34,12 +35,12 @@ async def create_job_description(
     """Create a new job description for the specified user"""
     # Check ownership
     if current_user.id != user_id:
-        raise HTTPException(status_code=403, detail="Cannot create job description for another user")
+        raise HTTPException(status_code=403, message="Cannot create job description for another user")
     
     try:
         return service.create_job_description(user_id, job_desc_data)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, message=str(e))
 
 @router.get("/", response_model=list[JobDescriptionResponse])
 async def get_user_job_descriptions(
@@ -50,7 +51,7 @@ async def get_user_job_descriptions(
     """Get all job descriptions for the specified user"""
     # Check ownership
     if current_user.id != user_id:
-        raise HTTPException(status_code=403, detail="Cannot access another user's job descriptions")
+        raise HTTPException(status_code=403, message="Cannot access another user's job descriptions")
     
     return service.get_user_job_descriptions(user_id)
 
@@ -64,14 +65,14 @@ async def get_job_description(
     """Get a specific job description by UUID for the user"""
     # Check ownership
     if current_user.id != user_id:
-        raise HTTPException(status_code=403, detail="Cannot access another user's job description")
+        raise HTTPException(status_code=403, message="Cannot access another user's job description")
     job_desc = service.get_job_description_by_uuid(job_desc_uuid)
     if not job_desc:
-        raise HTTPException(status_code=404, detail="Job description not found")
+        raise HTTPException(status_code=404, message="Job description not found")
     
     # Check ownership
     if not service.check_job_description_ownership(job_desc_uuid, current_user.id):
-        raise HTTPException(status_code=403, detail="Not authorized to access this job description")
+        raise HTTPException(status_code=403, message="Not authorized to access this job description")
     
     return job_desc
 
@@ -87,7 +88,7 @@ async def get_user_job_descriptions(
     """Get all job descriptions for a specific user (UUID-based)"""
     # For now, users can only access their own job descriptions
     if user_uuid != current_user.uuid:
-        raise HTTPException(status_code=403, detail="Not authorized to access other users' job descriptions")
+        raise HTTPException(status_code=403, message="Not authorized to access other users' job descriptions")
     
     return service.get_user_job_descriptions(current_user.id, skip, limit)
 
@@ -102,15 +103,15 @@ async def update_job_description(
     """Update a job description"""
     # Check ownership
     if not service.check_job_description_ownership(job_desc_uuid, current_user.id):
-        raise HTTPException(status_code=403, detail="Not authorized to update this job description")
+        raise HTTPException(status_code=403, message="Not authorized to update this job description")
     
     try:
         updated_job_desc = service.update_job_description(job_desc_uuid, job_desc_update)
         if not updated_job_desc:
-            raise HTTPException(status_code=404, detail="Job description not found")
+            raise HTTPException(status_code=404, message="Job description not found")
         return updated_job_desc
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, message=str(e))
 
 
 @router.delete("/{job_desc_uuid}", status_code=204)
@@ -122,8 +123,8 @@ async def delete_job_description(
     """Delete a job description"""
     # Check ownership
     if not service.check_job_description_ownership(job_desc_uuid, current_user.id):
-        raise HTTPException(status_code=403, detail="Not authorized to delete this job description")
+        raise HTTPException(status_code=403, message="Not authorized to delete this job description")
     
     success = service.delete_job_description(job_desc_uuid)
     if not success:
-        raise HTTPException(status_code=404, detail="Job description not found")
+        raise HTTPException(status_code=404, message="Job description not found")

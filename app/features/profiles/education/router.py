@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
+from core.exceptions import HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -20,7 +21,7 @@ def create_education(
     try:
         return service.create_education(education_data, profile_id=profile_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, message=str(e))
 
 @router.get("/", response_model=list[EducationResponse])
 def get_profile_education(
@@ -43,7 +44,7 @@ def get_education(
     service = EducationService(db)
     education = service.get_education_by_uuid(education_uuid)
     if not education:
-        raise HTTPException(status_code=404, detail="Education record not found")
+        raise HTTPException(status_code=404, message="Education record not found")
     return education
 
 @router.get("/user/{user_uuid}", response_model=List[EducationResponse])
@@ -64,7 +65,7 @@ def update_education(education_uuid: str, education_data: EducationUpdate, db: S
     service = EducationService(db)
     education = service.update_education_by_uuid(education_uuid, education_data)
     if not education:
-        raise HTTPException(status_code=404, detail="Education record not found")
+        raise HTTPException(status_code=404, message="Education record not found")
     return education
 
 @router.delete("/{education_uuid}", status_code=status.HTTP_204_NO_CONTENT)
@@ -72,4 +73,4 @@ def delete_education(education_uuid: str, db: Session = Depends(get_db)):
     """Delete an education record by UUID"""
     service = EducationService(db)
     if not service.delete_education_by_uuid(education_uuid):
-        raise HTTPException(status_code=404, detail="Education record not found")
+        raise HTTPException(status_code=404, message="Education record not found")

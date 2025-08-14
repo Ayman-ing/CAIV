@@ -353,7 +353,15 @@
 </template>
 
 <script setup lang="ts">
+import { useAuthStore } from '~/composables/useAuth'
+import type { ApiError } from '~/types/auth'
 
+// Protect this route - only allow guests (redirect authenticated users)
+definePageMeta({
+  middleware: 'guest'
+})
+
+const { register, isLoading: authLoading } = useAuthStore()
 
 // SEO Meta
 useSeoMeta({
@@ -388,7 +396,7 @@ const showTerms = ref<boolean>(false)
 const showPrivacy = ref<boolean>(false)
 
 // Loading States
-const isLoading = ref<boolean>(false)
+const isLoading = computed(() => authLoading.value)
 const isGoogleLoading = ref<boolean>(false)
 const isGithubLoading = ref<boolean>(false)
 
@@ -482,17 +490,19 @@ const validateForm = (): boolean => {
 const handleRegister = async () => {
   if (!validateForm()) return
 
-  isLoading.value = true
   generalError.value = ''
 
   try {
-    // TODO: Replace with actual backend API call
-    await new Promise(resolve => setTimeout(resolve, 1500)) // Simulate API call
-    await navigateTo('/dashboard')
+    await register({
+      email: email.value,
+      password: password.value,
+      confirm_password: confirmPassword.value,
+      first_name: firstName.value,
+      last_name: lastName.value
+    })
+    // Navigation will be handled by the auth store after successful registration
   } catch (error: any) {
-    generalError.value = error.message || 'Failed to create account. Please try again.'
-  } finally {
-    isLoading.value = false
+    generalError.value = error.statusMessage || error.message || 'Failed to create account. Please try again.'
   }
 }
 

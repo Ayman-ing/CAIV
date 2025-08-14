@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
+from core.exceptions import HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -20,7 +21,7 @@ def create_project(
     try:
         return service.create_project(project_data, profile_id=profile_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, message=str(e))
 
 @router.get("/", response_model=list[ProjectResponse])
 def get_profile_projects(
@@ -43,7 +44,7 @@ def get_project(
     service = ProjectService(db)
     project = service.get_project_by_uuid(project_uuid)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise HTTPException(status_code=404, message="Project not found")
     return project
 
 @router.get("/user/{user_uuid}", response_model=List[ProjectResponse])
@@ -64,7 +65,7 @@ def update_project(project_uuid: str, project_data: ProjectUpdate, db: Session =
     service = ProjectService(db)
     project = service.update_project_by_uuid(project_uuid, project_data)
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise HTTPException(status_code=404, message="Project not found")
     return project
 
 @router.delete("/{project_uuid}", status_code=status.HTTP_204_NO_CONTENT)
@@ -72,4 +73,4 @@ def delete_project(project_uuid: str, db: Session = Depends(get_db)):
     """Delete a project by UUID"""
     service = ProjectService(db)
     if not service.delete_project_by_uuid(project_uuid):
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise HTTPException(status_code=404, message="Project not found")

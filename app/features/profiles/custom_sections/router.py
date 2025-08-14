@@ -5,7 +5,8 @@ FastAPI routes for custom section management.
 """
 
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
+from core.exceptions import HTTPException
 from sqlalchemy.orm import Session
 
 from db.session import get_db
@@ -43,11 +44,11 @@ async def get_custom_section(
     """Get a specific custom section by UUID"""
     section = service.get_section_by_uuid(section_uuid)
     if not section:
-        raise HTTPException(status_code=404, detail="Custom section not found")
+        raise HTTPException(status_code=404, message="Custom section not found")
     
     # Check ownership
     if not service.check_section_ownership(section_uuid, current_user.id):
-        raise HTTPException(status_code=403, detail="Not authorized to access this custom section")
+        raise HTTPException(status_code=403, message="Not authorized to access this custom section")
     
     return section
 
@@ -63,7 +64,7 @@ async def get_user_custom_sections(
     """Get all custom sections for a specific user (UUID-based)"""
     # For now, users can only access their own custom sections
     if user_uuid != current_user.uuid:
-        raise HTTPException(status_code=403, detail="Not authorized to access other users' custom sections")
+        raise HTTPException(status_code=403, message="Not authorized to access other users' custom sections")
     
     return service.get_user_sections(current_user.id, skip, limit)
 
@@ -78,11 +79,11 @@ async def update_custom_section(
     """Update a custom section"""
     # Check ownership
     if not service.check_section_ownership(section_uuid, current_user.id):
-        raise HTTPException(status_code=403, detail="Not authorized to update this custom section")
+        raise HTTPException(status_code=403, message="Not authorized to update this custom section")
     
     updated_section = service.update_section(section_uuid, section_update)
     if not updated_section:
-        raise HTTPException(status_code=404, detail="Custom section not found")
+        raise HTTPException(status_code=404, message="Custom section not found")
     return updated_section
 
 
@@ -95,8 +96,8 @@ async def delete_custom_section(
     """Delete a custom section"""
     # Check ownership
     if not service.check_section_ownership(section_uuid, current_user.id):
-        raise HTTPException(status_code=403, detail="Not authorized to delete this custom section")
+        raise HTTPException(status_code=403, message="Not authorized to delete this custom section")
     
     success = service.delete_section(section_uuid)
     if not success:
-        raise HTTPException(status_code=404, detail="Custom section not found")
+        raise HTTPException(status_code=404, message="Custom section not found")
