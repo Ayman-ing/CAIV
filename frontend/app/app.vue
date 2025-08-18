@@ -1,7 +1,9 @@
 <template>
+  <NuxtLayout>
   <div class="transition-colors duration-300 min-h-screen bg-background text-primary">
     <NuxtPage />
   </div>
+  </NuxtLayout>
 </template>
 
 <script setup>
@@ -42,7 +44,7 @@ html:not([data-theme="dark"]) {
 }
 
 html:not([data-theme="dark"]) body {
-  background-color: rgb(255 255 255) !important;
+  background-color: rgb(249 250 251) !important;
   color: rgb(15 15 15) !important;
 }
 

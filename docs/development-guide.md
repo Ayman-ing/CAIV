@@ -397,6 +397,130 @@ def upgrade():
 
 ## AI Development
 
+## Frontend Development (Nuxt.js)
+
+### Setup and Development
+
+1. **Frontend Setup**
+   ```bash
+   cd frontend/app
+   npm install
+   npm run dev
+   ```
+
+2. **Build for Production**
+   ```bash
+   npm run build
+   ```
+
+### Frontend Architecture
+
+The frontend follows a component-based architecture with clear separation of concerns:
+
+```
+frontend/app/
+├── components/           # Reusable Vue components
+│   ├── auth/            # Authentication components
+│   │   ├── LoginForm.vue
+│   │   └── RegisterForm.vue
+│   └── dashboard/       # Dashboard components
+│       ├── DashboardHome.vue     # Main dashboard
+│       ├── JobInputCard.vue      # Job input functionality
+│       └── ResumePreviewCard.vue # Resume preview/management
+├── layouts/             # Layout components
+│   └── auth.vue        # Authenticated layout with navigation
+├── pages/              # Route components
+│   ├── index.vue       # Landing page
+│   ├── login.vue       # Login page
+│   ├── register.vue    # Registration page
+│   └── dashboard.vue   # Dashboard page
+├── services/           # Business logic services
+│   └── authService.ts  # Authentication service
+├── stores/             # State management
+│   └── userStore.ts    # User state management
+├── api/                # API client functions
+│   └── auth.ts         # Authentication API calls
+├── middleware/         # Route middleware
+│   ├── auth.ts         # Authentication guard
+│   └── guest.ts        # Guest-only routes
+└── composables/        # Reusable composition functions
+    └── useDarkMode.ts  # Dark mode functionality
+```
+
+### Component Architecture
+
+#### Dashboard Implementation
+- **DashboardHome.vue**: Main dashboard component with 3-step workflow
+  - Step 1: Profile enhancement with horizontal action buttons
+  - Step 2: Job input via JobInputCard
+  - Step 3: Resume generation results
+- **Simplified UI**: Clean design with enhanced light mode contrast
+- **Responsive Layout**: Grid-based layout that adapts to screen size
+
+#### Authentication Layout
+- **Minimal Design**: Simple top bar with logo, dark mode toggle, and logout
+- **Enhanced Contrast**: Improved background colors for better visibility
+- **Responsive**: Works across all device sizes
+
+### State Management
+
+#### User Store (`userStore.ts`)
+```typescript
+{
+  user: User | null,           // Complete user object
+  isLoading: boolean,          // Loading states
+  isAuthenticated: computed,   // Derived from user presence
+  preferences: object          // User preferences
+}
+```
+
+#### Authentication Service (`authService.ts`)
+- Login/register functionality
+- Token management
+- User data fetching
+- Navigation handling
+
+### Styling and Theming
+
+#### Tailwind CSS
+- **Enhanced Light Mode**: Improved contrast with better background colors
+- **Dark Mode Support**: Full dark mode with toggle functionality
+- **Responsive Design**: Mobile-first responsive utilities
+- **Component Variants**: Consistent styling across components
+
+#### Color Scheme
+- **Light Mode**: Gray-100 backgrounds with enhanced card shadows
+- **Dark Mode**: Dark gray backgrounds with proper contrast
+- **Accent Colors**: Blue, green, and indigo for different actions
+
+### Development Patterns
+
+#### Code Organization
+- **Single File Components**: Vue SFC with TypeScript
+- **Composition API**: Modern Vue 3 composition patterns
+- **Direct Logic**: Prefer inline logic over complex abstractions
+- **Simple Functions**: Avoid unnecessary class hierarchies
+
+#### Component Communication
+- **Props Down**: Parent to child data flow
+- **Events Up**: Child to parent communication via emits
+- **Store State**: Shared state via composable stores
+- **Service Layer**: Business logic in service functions
+
+### Testing and Quality
+
+#### Development Tools
+- **TypeScript**: Full type safety
+- **ESLint**: Code quality and consistency
+- **Prettier**: Code formatting
+- **Vite**: Fast development and building
+
+#### Best Practices
+- **Component Isolation**: Self-contained components
+- **Error Handling**: Proper error boundaries
+- **Loading States**: User feedback during operations
+- **Accessibility**: ARIA labels and keyboard navigation
+
 ### Vector Embeddings
 
 1. **Model Selection**: Choose appropriate embedding models
