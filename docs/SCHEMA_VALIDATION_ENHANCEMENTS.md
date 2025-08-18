@@ -234,7 +234,7 @@ class CreateSchema(BaseSchema):
 ### Example Error Response
 ```json
 {
-    "detail": [
+    "message": [
         {
             "loc": ["body", "company_name"],
             "msg": "Company name cannot be empty or whitespace only",

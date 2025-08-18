@@ -298,7 +298,7 @@ class TestAdminUserEndpoints:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         
         data = response.json()
-        assert "already an admin" in data["detail"]
+        assert "already an admin" in data["message"]
 
     def test_promote_user_not_found(self, client, admin_auth_headers):
         """Test promoting non-existent user"""

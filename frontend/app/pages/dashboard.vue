@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useAuthStore } from '~/composables/useAuth'
-
+import { useUserStore } from '~/stores/userStore'
+import {authService} from '~/services/authService'
 // Protect this route - require authentication
 definePageMeta({
   middleware: 'auth'
 })
 
-// Get user data from auth store
-const { user, userName, logout } = useAuthStore()
-
+// Get user data from user store
+const { user, userName } = useUserStore()
+const { logout } = authService
 // Handle logout
 const handleLogout = async () => {
   try {

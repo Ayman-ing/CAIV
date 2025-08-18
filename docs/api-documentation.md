@@ -157,7 +157,7 @@ Auth endpoints return user data with tokens:
 ### Error Responses
 ```json
 {
-  "detail": "Error message describing what went wrong"
+  "message": "Error message describing what went wrong"
 }
 ```
 
@@ -423,7 +423,7 @@ The API supports Cross-Origin Resource Sharing (CORS) for web applications.
 
 ---
 
-*For additional implementation details, see the [UUID Flow Design](./UUID_FLOW_DESIGN.md) documentation.*
+*For additional implementation messages, see the [UUID Flow Design](./UUID_FLOW_DESIGN.md) documentation.*
 ```http
 GET /profiles/{profile_uuid}
 ```

@@ -34,7 +34,7 @@ class TestAuthRouter:
         
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         data = response.json()
-        assert "already registered" in data["detail"].lower()
+        assert "already registered" in data["message"].lower()
 
     def test_register_invalid_email(self, client, sample_user_data):
         """Test registration with invalid email format"""
@@ -66,7 +66,7 @@ class TestAuthRouter:
         
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
         data = response.json()
-        assert any("at least 8 characters" in str(error) for error in data["detail"])
+        assert any("at least 8 characters" in str(error) for error in data["message"])
 
     def test_register_weak_password_no_uppercase(self, client, sample_user_data):
         """Test registration with password missing uppercase letter"""
@@ -78,7 +78,7 @@ class TestAuthRouter:
         
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
         data = response.json()
-        assert any("uppercase letter" in str(error) for error in data["detail"])
+        assert any("uppercase letter" in str(error) for error in data["message"])
 
     def test_register_weak_password_no_lowercase(self, client, sample_user_data):
         """Test registration with password missing lowercase letter"""
@@ -90,7 +90,7 @@ class TestAuthRouter:
         
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
         data = response.json()
-        assert any("lowercase letter" in str(error) for error in data["detail"])
+        assert any("lowercase letter" in str(error) for error in data["message"])
 
     def test_register_weak_password_no_number(self, client, sample_user_data):
         """Test registration with password missing number"""
@@ -102,7 +102,7 @@ class TestAuthRouter:
         
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
         data = response.json()
-        assert any("number" in str(error) for error in data["detail"])
+        assert any("number" in str(error) for error in data["message"])
 
     def test_register_strong_password_success(self, client, sample_user_data):
         """Test registration with strong password meeting all requirements"""
@@ -150,7 +150,7 @@ class TestAuthRouter:
         
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         data = response.json()
-        assert "incorrect" in data["detail"].lower()
+        assert "incorrect" in data["message"].lower()
 
     def test_login_wrong_password(self, client, sample_user_data, created_user):
         """Test login with wrong password"""
@@ -163,7 +163,7 @@ class TestAuthRouter:
         
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         data = response.json()
-        assert "incorrect" in data["detail"].lower()
+        assert "incorrect" in data["message"].lower()
 
     def test_login_missing_credentials(self, client):
         """Test login with missing credentials"""
