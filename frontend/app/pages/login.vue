@@ -1,3 +1,8 @@
+<script setup lang="ts">
+definePageMeta({
+  middleware: 'guest'
+})
+</script>
 <template>
   <div class="min-h-screen bg-white dark:bg-gray-900">
     <!-- Navigation -->
@@ -46,8 +51,4 @@
   </div>
 </template>
 
-<script setup lang="ts">
-definePageMeta({
-  middleware: 'guest'
-})
-</script>
+

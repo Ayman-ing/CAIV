@@ -1,10 +1,141 @@
+<script setup lang="ts">
+// Types
+interface Resume {
+  id: string
+  jobTitle: string
+  company: string
+  matchPercentage: number
+  createdAt: string
+  summary?: string
+  highlightedSkills?: string[]
+  content?: string
+  format?: 'pdf' | 'docx' | 'txt'
+}
+
+// Emits
+const emit = defineEmits<{
+  'create-resume': []
+  'select-resume': [resume: Resume]
+}>()
+
+// State
+const viewMode = ref<'grid' | 'list'>('grid')
+const isLoadingMore = ref<boolean>(false)
+const hasMoreResumes = ref<boolean>(false)
+
+// Mock data - this would come from a store/API
+const resumes = ref<Resume[]>([
+  {
+    id: '1',
+    jobTitle: 'Senior Frontend Developer',
+    company: 'Google',
+    matchPercentage: 92,
+    createdAt: '2024-01-15T10:00:00Z',
+    summary: 'Tailored for Google\'s emphasis on React and TypeScript skills',
+    highlightedSkills: ['React', 'TypeScript', 'Next.js', 'Node.js', 'AWS']
+  },
+  {
+    id: '2',
+    jobTitle: 'Full Stack Engineer',
+    company: 'Stripe',
+    matchPercentage: 88,
+    createdAt: '2024-01-14T15:30:00Z',
+    summary: 'Highlighted fintech experience and API development',
+    highlightedSkills: ['Python', 'PostgreSQL', 'Docker', 'Kubernetes', 'REST APIs']
+  },
+  {
+    id: '3',
+    jobTitle: 'Product Manager',
+    company: 'Microsoft',
+    matchPercentage: 76,
+    createdAt: '2024-01-13T09:15:00Z',
+    summary: 'Emphasized technical background and product strategy',
+    highlightedSkills: ['Product Strategy', 'Agile', 'Data Analysis', 'Leadership']
+  }
+])
+
+// Methods
+const formatDate = (dateString: string): string => {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffTime = now.getTime() - date.getTime()
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+  
+  if (diffDays === 0) return 'Today'
+  if (diffDays === 1) return 'Yesterday'
+  if (diffDays < 7) return `${diffDays} days ago`
+  
+  return date.toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric',
+    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+  })
+}
+
+const selectResume = (resume: Resume) => {
+  emit('select-resume', resume)
+}
+
+const downloadResume = async (resume: Resume) => {
+  try {
+    // TODO: Implement resume download
+    console.log('Downloading resume:', resume.id)
+    
+    // Simulate download
+    const link = document.createElement('a')
+    link.href = '#' // This would be the actual file URL
+    link.download = `${resume.company}_${resume.jobTitle}_Resume.pdf`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  } catch (error) {
+    console.error('Error downloading resume:', error)
+  }
+}
+
+const deleteResume = async (resumeId: string) => {
+  if (!confirm('Are you sure you want to delete this resume?')) return
+  
+  try {
+    // TODO: Implement resume deletion
+    console.log('Deleting resume:', resumeId)
+    
+    // Remove from local array
+    const index = resumes.value.findIndex(r => r.id === resumeId)
+    if (index > -1) {
+      resumes.value.splice(index, 1)
+    }
+  } catch (error) {
+    console.error('Error deleting resume:', error)
+  }
+}
+
+const loadMoreResumes = async () => {
+  isLoadingMore.value = true
+  
+  try {
+    // TODO: Implement pagination
+    console.log('Loading more resumes...')
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    hasMoreResumes.value = false
+  } catch (error) {
+    console.error('Error loading more resumes:', error)
+  } finally {
+    isLoadingMore.value = false
+  }
+}
+</script>
+
 <template>
   <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow duration-200">
     <!-- Header -->
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center">
-        <div class="p-3 bg-purple-50 dark:bg-purple-900/30 rounded-full mr-4">
-          <Icon name="mdi:file-document-edit" class="text-2xl text-purple-600 dark:text-purple-400" />
+        <div class="p-3 bg-green-50 dark:bg-green-900/30 rounded-full mr-4">
+          <Icon name="mdi:file-document-edit" class="text-2xl text-green-500 dark:text-green-400" />
         </div>
         <div>
           <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
@@ -186,133 +317,4 @@
   </div>
 </template>
 
-<script setup lang="ts">
-// Types
-interface Resume {
-  id: string
-  jobTitle: string
-  company: string
-  matchPercentage: number
-  createdAt: string
-  summary?: string
-  highlightedSkills?: string[]
-  content?: string
-  format?: 'pdf' | 'docx' | 'txt'
-}
 
-// Emits
-const emit = defineEmits<{
-  'create-resume': []
-  'select-resume': [resume: Resume]
-}>()
-
-// State
-const viewMode = ref<'grid' | 'list'>('grid')
-const isLoadingMore = ref<boolean>(false)
-const hasMoreResumes = ref<boolean>(false)
-
-// Mock data - this would come from a store/API
-const resumes = ref<Resume[]>([
-  {
-    id: '1',
-    jobTitle: 'Senior Frontend Developer',
-    company: 'Google',
-    matchPercentage: 92,
-    createdAt: '2024-01-15T10:00:00Z',
-    summary: 'Tailored for Google\'s emphasis on React and TypeScript skills',
-    highlightedSkills: ['React', 'TypeScript', 'Next.js', 'Node.js', 'AWS']
-  },
-  {
-    id: '2',
-    jobTitle: 'Full Stack Engineer',
-    company: 'Stripe',
-    matchPercentage: 88,
-    createdAt: '2024-01-14T15:30:00Z',
-    summary: 'Highlighted fintech experience and API development',
-    highlightedSkills: ['Python', 'PostgreSQL', 'Docker', 'Kubernetes', 'REST APIs']
-  },
-  {
-    id: '3',
-    jobTitle: 'Product Manager',
-    company: 'Microsoft',
-    matchPercentage: 76,
-    createdAt: '2024-01-13T09:15:00Z',
-    summary: 'Emphasized technical background and product strategy',
-    highlightedSkills: ['Product Strategy', 'Agile', 'Data Analysis', 'Leadership']
-  }
-])
-
-// Methods
-const formatDate = (dateString: string): string => {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffTime = now.getTime() - date.getTime()
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-  
-  if (diffDays === 0) return 'Today'
-  if (diffDays === 1) return 'Yesterday'
-  if (diffDays < 7) return `${diffDays} days ago`
-  
-  return date.toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: 'numeric',
-    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-  })
-}
-
-const selectResume = (resume: Resume) => {
-  emit('select-resume', resume)
-}
-
-const downloadResume = async (resume: Resume) => {
-  try {
-    // TODO: Implement resume download
-    console.log('Downloading resume:', resume.id)
-    
-    // Simulate download
-    const link = document.createElement('a')
-    link.href = '#' // This would be the actual file URL
-    link.download = `${resume.company}_${resume.jobTitle}_Resume.pdf`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  } catch (error) {
-    console.error('Error downloading resume:', error)
-  }
-}
-
-const deleteResume = async (resumeId: string) => {
-  if (!confirm('Are you sure you want to delete this resume?')) return
-  
-  try {
-    // TODO: Implement resume deletion
-    console.log('Deleting resume:', resumeId)
-    
-    // Remove from local array
-    const index = resumes.value.findIndex(r => r.id === resumeId)
-    if (index > -1) {
-      resumes.value.splice(index, 1)
-    }
-  } catch (error) {
-    console.error('Error deleting resume:', error)
-  }
-}
-
-const loadMoreResumes = async () => {
-  isLoadingMore.value = true
-  
-  try {
-    // TODO: Implement pagination
-    console.log('Loading more resumes...')
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    hasMoreResumes.value = false
-  } catch (error) {
-    console.error('Error loading more resumes:', error)
-  } finally {
-    isLoadingMore.value = false
-  }
-}
-</script>

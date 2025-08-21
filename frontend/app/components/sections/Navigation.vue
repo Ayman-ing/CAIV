@@ -1,3 +1,42 @@
+<script setup lang="ts">
+
+const mobileMenuVisible = ref(false)
+
+// Mobile Navigation Items (simplified)
+const mobileNavigationItems = ref([
+  {
+    label: 'Features',
+    icon: 'mdi:star',
+    route: '#features'
+  },
+  {
+    label: 'Templates',
+    icon: 'mdi:view-grid',
+    route: '#templates'
+  },
+  {
+    label: 'Examples',
+    icon: 'mdi:eye',
+    route: '#examples'
+  },
+  {
+    label: 'Pricing',
+    icon: 'mdi:currency-usd',
+    route: '#pricing'
+  }
+])
+
+const toggleMobileMenu = () => {
+  mobileMenuVisible.value = !mobileMenuVisible.value
+}
+
+const navigateAndClose = (route: string) => {
+  mobileMenuVisible.value = false
+  navigateTo(route)
+}
+</script>
+
+
 <template>
   <nav class="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl shadow-lg border-b border-gray-200/50 dark:border-gray-700/50 fixed w-full top-0 z-50 transition-all duration-300">
     <div class="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -202,44 +241,6 @@
   </nav>
 </template>
 
-<script setup lang="ts">
-import { ref } from 'vue'
-
-const mobileMenuVisible = ref(false)
-
-// Mobile Navigation Items (simplified)
-const mobileNavigationItems = ref([
-  {
-    label: 'Features',
-    icon: 'mdi:star',
-    route: '#features'
-  },
-  {
-    label: 'Templates',
-    icon: 'mdi:view-grid',
-    route: '#templates'
-  },
-  {
-    label: 'Examples',
-    icon: 'mdi:eye',
-    route: '#examples'
-  },
-  {
-    label: 'Pricing',
-    icon: 'mdi:currency-usd',
-    route: '#pricing'
-  }
-])
-
-const toggleMobileMenu = () => {
-  mobileMenuVisible.value = !mobileMenuVisible.value
-}
-
-const navigateAndClose = (route: string) => {
-  mobileMenuVisible.value = false
-  navigateTo(route)
-}
-</script>
 
 <style scoped>
 /* Dropdown hover effect */

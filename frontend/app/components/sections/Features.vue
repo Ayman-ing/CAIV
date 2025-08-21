@@ -1,3 +1,5 @@
+<script setup lang="ts">
+</script>
 <template>
   <section id="features" class="py-20 bg-white dark:bg-gray-900 transition-colors duration-300">
     <div class="container mx-auto px-4 sm:px-6 lg:px-8">

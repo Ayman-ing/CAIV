@@ -1,3 +1,13 @@
+<script setup>
+const scrollToExamples = () => {
+  // Smooth scroll to examples section
+  const element = document.getElementById('examples')
+  if (element) {
+    element.scrollIntoView({ behavior: 'smooth' })
+  }
+}
+</script>
+
 <template>
   <section class="hero-gradient min-h-screen flex items-center pt-16">
     <div class="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -95,12 +105,3 @@
   </section>
 </template>
 
-<script setup>
-const scrollToExamples = () => {
-  // Smooth scroll to examples section
-  const element = document.getElementById('examples')
-  if (element) {
-    element.scrollIntoView({ behavior: 'smooth' })
-  }
-}
-</script>

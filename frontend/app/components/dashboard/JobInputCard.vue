@@ -1,3 +1,94 @@
+<script setup lang="ts">
+// Form data
+const company = ref<string>('')
+const jobTitle = ref<string>('')
+const jobDescription = ref<string>('')
+const keyRequirements = ref<string[]>([])
+
+// States
+const isAnalyzing = ref<boolean>(false)
+const isProcessing = ref<boolean>(false)
+
+// Computed
+const characterCount = computed(() => jobDescription.value.length)
+const canProceed = computed(() => 
+  company.value.trim() && 
+  jobTitle.value.trim() && 
+  jobDescription.value.trim().length > 100
+)
+
+// Basic keyword extraction (simple implementation for now)
+const extractKeyRequirements = (text: string): string[] => {
+  const skillKeywords = [
+    'javascript', 'python', 'react', 'vue', 'angular', 'node', 'express',
+    'sql', 'nosql', 'mongodb', 'postgresql', 'mysql', 'redis',
+    'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'git',
+    'agile', 'scrum', 'leadership', 'management', 'communication',
+    'bachelor', 'master', 'degree', 'certification'
+  ]
+  
+  const lowerText = text.toLowerCase()
+  const found = skillKeywords.filter(keyword => lowerText.includes(keyword))
+  
+  // Add some common phrases detection
+  const phrases = []
+  if (lowerText.includes('years of experience')) phrases.push('Experience Required')
+  if (lowerText.includes('remote')) phrases.push('Remote Work')
+  if (lowerText.includes('full-time')) phrases.push('Full-time')
+  if (lowerText.includes('startup')) phrases.push('Startup Environment')
+  
+  return [...new Set([...found, ...phrases])].slice(0, 10)
+}
+
+// Debounced analysis
+let analysisTimeout: NodeJS.Timeout
+const handleJobDescriptionInput = () => {
+  if (analysisTimeout) clearTimeout(analysisTimeout)
+  
+  if (jobDescription.value.length > 50) {
+    isAnalyzing.value = true
+    analysisTimeout = setTimeout(() => {
+      keyRequirements.value = extractKeyRequirements(jobDescription.value)
+      isAnalyzing.value = false
+    }, 1000)
+  } else {
+    keyRequirements.value = []
+    isAnalyzing.value = false
+  }
+}
+
+// Handle job analysis and resume creation
+const handleAnalyzeJob = async () => {
+  if (!canProceed.value) return
+  
+  isProcessing.value = true
+  
+  try {
+    // TODO: Implement job analysis and resume generation
+    // This will integrate with your AI service
+    console.log('Analyzing job:', {
+      company: company.value,
+      jobTitle: jobTitle.value,
+      description: jobDescription.value,
+      requirements: keyRequirements.value
+    })
+    
+    // Simulate processing time
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    
+    // Navigate to resume generation or show results
+    // This will be implemented when we have the resume generation flow
+    
+  } catch (error) {
+    console.error('Error analyzing job:', error)
+    // Handle error - show toast or error message
+  } finally {
+    isProcessing.value = false
+  }
+}
+</script>
+
+
 <template>
   <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow duration-200">
     <!-- Header -->
@@ -106,92 +197,3 @@
   </div>
 </template>
 
-<script setup lang="ts">
-// Form data
-const company = ref<string>('')
-const jobTitle = ref<string>('')
-const jobDescription = ref<string>('')
-const keyRequirements = ref<string[]>([])
-
-// States
-const isAnalyzing = ref<boolean>(false)
-const isProcessing = ref<boolean>(false)
-
-// Computed
-const characterCount = computed(() => jobDescription.value.length)
-const canProceed = computed(() => 
-  company.value.trim() && 
-  jobTitle.value.trim() && 
-  jobDescription.value.trim().length > 100
-)
-
-// Basic keyword extraction (simple implementation for now)
-const extractKeyRequirements = (text: string): string[] => {
-  const skillKeywords = [
-    'javascript', 'python', 'react', 'vue', 'angular', 'node', 'express',
-    'sql', 'nosql', 'mongodb', 'postgresql', 'mysql', 'redis',
-    'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'git',
-    'agile', 'scrum', 'leadership', 'management', 'communication',
-    'bachelor', 'master', 'degree', 'certification'
-  ]
-  
-  const lowerText = text.toLowerCase()
-  const found = skillKeywords.filter(keyword => lowerText.includes(keyword))
-  
-  // Add some common phrases detection
-  const phrases = []
-  if (lowerText.includes('years of experience')) phrases.push('Experience Required')
-  if (lowerText.includes('remote')) phrases.push('Remote Work')
-  if (lowerText.includes('full-time')) phrases.push('Full-time')
-  if (lowerText.includes('startup')) phrases.push('Startup Environment')
-  
-  return [...new Set([...found, ...phrases])].slice(0, 10)
-}
-
-// Debounced analysis
-let analysisTimeout: NodeJS.Timeout
-const handleJobDescriptionInput = () => {
-  if (analysisTimeout) clearTimeout(analysisTimeout)
-  
-  if (jobDescription.value.length > 50) {
-    isAnalyzing.value = true
-    analysisTimeout = setTimeout(() => {
-      keyRequirements.value = extractKeyRequirements(jobDescription.value)
-      isAnalyzing.value = false
-    }, 1000)
-  } else {
-    keyRequirements.value = []
-    isAnalyzing.value = false
-  }
-}
-
-// Handle job analysis and resume creation
-const handleAnalyzeJob = async () => {
-  if (!canProceed.value) return
-  
-  isProcessing.value = true
-  
-  try {
-    // TODO: Implement job analysis and resume generation
-    // This will integrate with your AI service
-    console.log('Analyzing job:', {
-      company: company.value,
-      jobTitle: jobTitle.value,
-      description: jobDescription.value,
-      requirements: keyRequirements.value
-    })
-    
-    // Simulate processing time
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    // Navigate to resume generation or show results
-    // This will be implemented when we have the resume generation flow
-    
-  } catch (error) {
-    console.error('Error analyzing job:', error)
-    // Handle error - show toast or error message
-  } finally {
-    isProcessing.value = false
-  }
-}
-</script>

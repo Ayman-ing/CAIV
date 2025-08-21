@@ -1,3 +1,9 @@
+<script setup lang="ts">
+const getCurrentYear = () => {
+  return new Date().getFullYear()
+}
+</script>
+
 <template>
   <footer class="bg-gray-900 dark:bg-gray-950 text-white transition-colors duration-300">
     <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -51,8 +57,3 @@
     </div>
   </footer>
 </template>
-<script setup lang="ts">
-const getCurrentYear = () => {
-  return new Date().getFullYear()
-}
-</script>
