@@ -1,3 +1,4 @@
+// filepath: frontend/app/components/auth/types.ts
 // Authentication related TypeScript interfaces
 
 export interface User {
@@ -49,21 +50,36 @@ export interface AuthState {
   user: User | null
   isAuthenticated: boolean
   isLoading: boolean
+  error: string | null
+  token: string | null
 }
 
-export interface ApiError {
-  error: {
-    code : string,
-    message : string
-    details : { [key: string]: any }
-  }
-  path : string 
-  method : string
+export interface AuthError {
+  message: string
+  field?: string
+  code?: string
 }
 
-// Password validation result
-export interface PasswordValidation {
-  isValid: boolean
-  errors: string[]
-  strength: 'weak' | 'medium' | 'strong'
+// Form validation interfaces
+export interface LoginFormData {
+  email: string
+  password: string
+}
+
+export interface RegisterFormData {
+  email: string
+  password: string
+  confirm_password: string
+  first_name: string
+  last_name: string
+}
+
+// Validation error interfaces
+export interface ValidationError {
+  field: string
+  message: string
+}
+
+export interface FormErrors {
+  [key: string]: string
 }

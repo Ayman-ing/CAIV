@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { authService } from '~/services/authService'
 import { useUserStore } from '~/stores/userStore'
-import type { ApiError } from '~/types/auth'
+import type { AuthError as ApiError } from '~/components/auth/types'
 
 // Define emits
 defineEmits<{

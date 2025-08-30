@@ -3,16 +3,10 @@
 import { ref, computed } from 'vue'
 import CollapsibleSection from '~/components/ui/CollapsibleSection.vue'
 import Modal from '~/components/ui/Modal.vue'
-
-interface BasicInfo {
-  fullName: string
-  email: string
-  phoneNumber: string
-  location: string
-}
+import type { BasicInfoFormData, BasicInfoField } from './types'
 
 // Basic Information Data
-const basicInfo = ref<BasicInfo>({
+const basicInfo = ref<BasicInfoFormData>({
   fullName: '',
   email: '',
   phoneNumber: '',
@@ -25,7 +19,7 @@ const isExpanded = ref(false)
 const isModalOpen = ref(false)
 
 // Form state
-const formData = ref<BasicInfo>({
+const formData = ref<BasicInfoFormData>({
   fullName: '',
   email: '',
   phoneNumber: '',
@@ -62,8 +56,8 @@ const isFormValid = computed(() => {
          formData.value.location.trim() !== ''
 })
 
-const completionFields = computed(() => {
-  const fields = [
+const completionFields = computed((): BasicInfoField[] => {
+  const fields: BasicInfoField[] = [
     { key: 'fullName', label: 'Full Name', value: basicInfo.value.fullName, required: true },
     { key: 'email', label: 'Email', value: basicInfo.value.email, required: false },
     { key: 'phoneNumber', label: 'Phone Number', value: basicInfo.value.phoneNumber, required: true },

@@ -6,7 +6,7 @@ import type {
   ChangePasswordRequest,
   AuthResponse,
   User 
-} from '~/types/auth'
+} from '~/components/auth/types'
 
 // Helper function to get full API URL
 const getApiUrl = (endpoint: string) => {

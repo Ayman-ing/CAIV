@@ -1,5 +1,5 @@
 // Authentication Service - Simple functions approach
-import type { User, LoginRequest, RegisterRequest, ChangePasswordRequest, ApiError } from '~/types/auth'
+import type { User, LoginRequest, RegisterRequest, ChangePasswordRequest, AuthError as ApiError } from '~/components/auth/types'
 import { authApi } from '~/api/auth'
 import { useUserStore } from '~/stores/userStore'
 

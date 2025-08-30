@@ -24,7 +24,7 @@ CAIV is a full-stack AI-powered resume builder application with FastAPI backend 
   - Various specialized docs for entity systems, vector embeddings, etc.
 
 ### Backend (FastAPI)
-- **Location**: `/app/`
+- **Location**: `backend/app/`
 - **Database**: PostgreSQL with SQLAlchemy ORM
 - **Authentication**: JWT Bearer tokens
 - **API Structure**: RESTful API with `/api/v1/` prefix
@@ -38,18 +38,8 @@ CAIV is a full-stack AI-powered resume builder application with FastAPI backend 
 - **Authentication**: JWT tokens stored in localStorage
 - **Layout System**: `auth.vue` layout for protected routes with minimal navigation
 
-## Authentication Flow
 
-### Current Implementation
-1. **Login/Register** → API call with credentials
-2. **Token Response** → Backend returns `access_token`, `token_type`, `expires_in`, `user_id`
-3. **User Data Fetch** → Frontend calls `/api/v1/me` to get complete user object
-4. **State Update** → Store user data + token in userStore
-5. **Navigation** → Redirect to dashboard
 
-### Key Files
-- **Backend**: `app/api/routes/auth.py`, `app/core/exceptions.py`
-- **Frontend**: `services/authService.ts`, `stores/userStore.ts`, `api/auth.ts`
 
 ## Project Patterns & Conventions
 
@@ -95,38 +85,12 @@ CAIV is a full-stack AI-powered resume builder application with FastAPI backend 
 - **Pattern**: Simple async functions with error handling
 - **Error Handling**: Maps backend errors to frontend-friendly format
 
-## Authentication State Management
-
-### UserStore Structure
-```typescript
-{
-  user: User | null,           // Complete user object
-  isLoading: boolean,          // Loading states
-  isAuthenticated: computed,   // Derived from user presence
-  preferences: object          // User preferences
-}
-```
-
-### Auth Service Methods
-- `login(credentials)` - Handle login + user fetch + navigation
-- `register(userData)` - Handle registration + user fetch + navigation  
-- `logout()` - Clear state + navigate home
-- `checkAuthStatus()` - Verify token validity on app start
-
 ## Component Development Guidelines
 
 ### Form Components
 - **Validation**: Inline validation in event handlers
 - **Error Handling**: Local error state with user-friendly messages
 - **Loading States**: Use store loading state
-- **Events**: Emit meaningful events for parent components
-
-### Dashboard Components (Planned)
-- **Modular Structure**: Break dashboard into logical components
-- **Separation of Concerns**: UI components, data components, action components
-- **Reusability**: Build components that can be reused across different dashboard views
-
-## Development Workflow
 
 ### Current Status
 - ✅ Authentication system complete and working
@@ -142,41 +106,7 @@ CAIV is a full-stack AI-powered resume builder application with FastAPI backend 
 3. **Data Management**: Implement dashboard-specific stores/services
 4. **UI/UX**: Create responsive and intuitive dashboard interface
 
-## Dashboard Architecture Implementation
 
-The dashboard has been implemented using a **component-based architecture** with clear separation of concerns:
-
-### Main Dashboard Components
-
-1. **DashboardHome.vue** - Main container component
-   - Orchestrates the overall dashboard layout
-   - Manages state flow between child components
-   - Handles navigation and user interactions
-   - Includes header with user profile and stats
-
-2. **JobInputCard.vue** - Job description input and analysis
-   - Company name and job title input fields
-   - Job description textarea with character count
-   - Real-time keyword extraction and requirements detection
-   - Debounced analysis to avoid excessive API calls
-   - Preview of detected requirements as tags
-   - Submit button with processing state
-
-3. **ProfileSetupCard.vue** - User profile management
-   - Progress tracking with completion percentage
-   - Basic info (name, email, phone, location)
-   - Skills management with add/remove functionality
-   - Professional summary editing
-   - Expandable form interface with sections
-   - LinkedIn import placeholder
-
-4. **ResumePreviewCard.vue** - Generated resumes display
-   - Grid and list view toggle modes
-   - Resume thumbnails with mock previews
-   - Match percentage indicators
-   - Download and delete action buttons
-   - Empty state for first-time users
-   - Pagination support for large resume collections
 
 ### Workflow Integration
 
@@ -185,12 +115,7 @@ The dashboard implements the core user workflow:
 Step 1: Profile Setup → Step 2: Job Input → AI Processing → Resume Generation → Preview & Download
 ```
 
-### Component Communication Patterns
 
-- **Event-driven communication**: Child components emit events to parent
-- **Props for configuration**: Parent passes configuration to children
-- **Store integration**: Components access user state through userStore
-- **Local state management**: Each component manages its own UI state
 
 ### Development Patterns Used
 
@@ -200,37 +125,11 @@ Step 1: Profile Setup → Step 2: Job Input → AI Processing → Resume Generat
 - **TODO markers** for future API integration points
 - **Responsive design** with Tailwind CSS utilities
 
-## Recent Updates & Current State (August 2025)
 
-### Dashboard Implementation
-- **Main Component**: `DashboardHome.vue` - Complete dashboard with 3-step workflow
-- **Step 1**: Profile enhancement with 3 horizontal action buttons
-  - Add Profile Sections
-  - Extract from Resume 
-  - Import LinkedIn Profile
-- **Step 2**: Job input via `JobInputCard.vue`
-- **Step 3**: Resume generation results with preview and download options
 
-### UI/UX Improvements
-- **Enhanced Light Mode**: Improved contrast with better background colors
-  - Changed main background from pure white to `gray-100`
-  - Enhanced card shadows and borders for better visual hierarchy
-  - Strengthened gradient backgrounds and button styling
-- **Simplified Navigation**: Minimal auth layout with just dark mode toggle and logout
-- **Horizontal Button Layout**: Three main action buttons now display horizontally for space efficiency
 
-### Component Cleanup
-- **Removed Unnecessary Files**: Cleaned up dashboard folder
-- **Kept Essential Components**: 
-  - `DashboardHome.vue` (main dashboard)
-  - `JobInputCard.vue` (job input functionality)
-  - `ResumePreviewCard.vue` (resume preview/management)
-- **Removed Files**: DashboardHeader.vue, DashboardNavigation.vue, Header.vue, Navigation.vue, QuickActionCard.vue, RecentActivity.vue
 
-### Authentication Layout
-- **Simplified Design**: `layouts/auth.vue` with minimal top bar
-- **Features**: Logo, dark mode toggle, logout button only
-- **Background**: Enhanced with `gray-100` background and shadow for better contrast
+
 
 ### Dark Mode Integration
 - **Composable**: `useDarkMode()` with toggle functionality
@@ -245,7 +144,7 @@ Step 1: Profile Setup → Step 2: Job Input → AI Processing → Resume Generat
 ├── database-schema.md        # Database structure
 └── [various specialized docs]
 
-/app/                         # FastAPI Backend
+/backend/app/                         # FastAPI Backend
 ├── api/routes/              # API routes
 ├── core/                    # Core configuration
 ├── db/                      # Database layer
@@ -288,25 +187,6 @@ Step 1: Profile Setup → Step 2: Job Input → AI Processing → Resume Generat
 - ✅ Easier maintenance
 - ✅ No unnecessary abstraction
 
-## File Structure
-```
-/app/                          # FastAPI Backend
-├── api/routes/               # API routes
-├── core/                     # Core configuration
-├── db/                       # Database layer
-└── features/                 # Business logic
-
-/frontend/app/                # Nuxt 3 Frontend  
-├── components/              # Vue components
-│   ├── auth/               # Authentication components
-│   └── dashboard/          # Dashboard components (planned)
-├── services/               # Business logic services
-├── stores/                 # State management
-├── api/                    # HTTP client functions
-├── middleware/             # Route middleware
-├── pages/                  # Page components
-└── plugins/                # Nuxt plugins
-```
 
 ## Notes for Claude
 - **Prefer simplicity** over complex abstractions
@@ -317,5 +197,4 @@ Step 1: Profile Setup → Step 2: Job Input → AI Processing → Resume Generat
 
 ---
 
-*Last Updated: August 18, 2025*
-*Current Focus: Dashboard component architecture planning*
+*Last Updated: August 30, 2025*

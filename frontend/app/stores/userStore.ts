@@ -1,5 +1,5 @@
 // User Store - Simple state management
-import type { User } from '~/types/auth'
+import type { User } from '~/components/auth/types'
 
 // Simple reactive state
 const state = reactive({
