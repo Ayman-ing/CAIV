@@ -16,12 +16,14 @@ class ProfileLinkRepository:
     def __init__(self, db: Session):
         self.db = db
     
-    def create(self, user_id: int, link_data: ProfileLinkCreate) -> ProfileLink:
-        """Create a new user link"""
+    def create_with_profile_id(self, profile_id: int, link_data: ProfileLinkCreate) -> ProfileLink:
+        """Create a new profile link"""
         db_link = ProfileLink(
-            user_id=user_id,
+            profile_id=profile_id,
+            label=link_data.label,
+            url=str(link_data.url),
             platform=link_data.platform,
-            url=str(link_data.url)
+            is_visible=link_data.is_visible
         )
         self.db.add(db_link)
         self.db.commit()
@@ -32,22 +34,22 @@ class ProfileLinkRepository:
         """Get user link by UUID"""
         return self.db.query(ProfileLink).filter(ProfileLink.uuid == link_uuid).first()
     
-    def get_user_links(self, user_id: int, skip: int = 0, limit: int = 100) -> List[ProfileLink]:
-        """Get all links for a user, ordered by platform"""
+    def get_by_profile_id(self, profile_id: int, skip: int = 0, limit: int = 100) -> List[ProfileLink]:
+        """Get all links for a profile, ordered by platform"""
         return (
             self.db.query(ProfileLink)
-            .filter(ProfileLink.user_id == user_id)
+            .filter(ProfileLink.profile_id == profile_id)
             .order_by(ProfileLink.platform)
             .offset(skip)
             .limit(limit)
             .all()
         )
     
-    def get_by_platform(self, user_id: int, platform: str) -> Optional[ProfileLink]:
-        """Get user link by platform for a specific user"""
+    def get_by_platform(self, profile_id: int, platform: str) -> Optional[ProfileLink]:
+        """Get profile link by platform for a specific profile"""
         return (
             self.db.query(ProfileLink)
-            .filter(ProfileLink.user_id == user_id, ProfileLink.platform == platform)
+            .filter(ProfileLink.profile_id == profile_id, ProfileLink.platform == platform)
             .first()
         )
     

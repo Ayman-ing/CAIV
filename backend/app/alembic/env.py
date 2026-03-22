@@ -86,6 +86,10 @@ def get_url():
     if url.startswith("postgres://"):
         url = url.replace("postgres://", "postgresql://", 1)
     
+    # Convert asyncpg to psycopg2 for synchronous migrations
+    if url.startswith("postgresql+asyncpg://"):
+        url = url.replace("postgresql+asyncpg://", "postgresql+psycopg2://", 1)
+    
     # Ensure the URL has the correct driver
     if url.startswith("postgresql://") and "+psycopg2" not in url:
         # Check if it already has a driver specified

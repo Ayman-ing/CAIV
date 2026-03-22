@@ -16,6 +16,7 @@ class Education(BaseEntity):
     profile_id = Column(Integer, ForeignKey('profiles.id'))
     institution = Column(String)
     degree = Column(String)
+    degree_type = Column(String, nullable=True)
     field_of_study = Column(String)
     honors = Column(String)
     gpa = Column(Float)

@@ -1,103 +1,76 @@
-"""
-Custom Section Router
-
-FastAPI routes for custom section management.
-"""
-
-from typing import List
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, status
 from core.exceptions import HTTPException
 from sqlalchemy.orm import Session
+from typing import List
 
 from db.session import get_db
 from features.auth.dependencies import get_current_user
 from features.users.models import User
-from features.profiles.custom_sections.repository import CustomSectionRepository
-from features.profiles.custom_sections.service import CustomSectionService
-from features.profiles.custom_sections.schemas import CustomSectionCreate, CustomSectionUpdate, CustomSectionResponse
+from .service import CustomSectionService
+from .schemas import CustomSectionCreate, CustomSectionUpdate, CustomSectionResponse
+from features.profiles.repository import ProfileRepository
 
-router = APIRouter(prefix="/api/v1/profiles/{profile_id}/custom-sections", tags=["custom-sections"])
+router = APIRouter(prefix="/api/v1/profiles/{profile_uuid}/custom-sections", tags=["custom-sections"])
 
+def check_profile_ownership(db: Session, current_user: User, profile_uuid: str):
+    """Ensure the user owns the profile they are trying to manipulate"""
+    repo = ProfileRepository(db)
+    profile = repo.get_by_uuid(profile_uuid)
+    if not profile or profile.user_id != current_user.id:
+        raise HTTPException(status_code=403, message="Not authorized to access this profile's custom sections")
+    return profile
 
-def get_custom_section_service(db: Session = Depends(get_db)) -> CustomSectionService:
-    """Dependency to get custom section service"""
-    repository = CustomSectionRepository(db)
-    return CustomSectionService(repository)
-
-
-@router.post("/", response_model=CustomSectionResponse, status_code=201)
-async def create_custom_section(
-    section_data: CustomSectionCreate,
+@router.post("/", response_model=CustomSectionResponse, status_code=status.HTTP_201_CREATED)
+def create_custom_section(
+    profile_uuid: str,
+    section_data: CustomSectionCreate, 
     current_user: User = Depends(get_current_user),
-    service: CustomSectionService = Depends(get_custom_section_service)
+    db: Session = Depends(get_db)
 ):
-    """Create a new custom section for the current user"""
-    return service.create_section(current_user.id, section_data)
+    """Create a new custom section for the specified profile"""
+    check_profile_ownership(db, current_user, profile_uuid)
+    service = CustomSectionService(db)
+    try:
+        return service.create_custom_section(profile_uuid, section_data)
+    except ValueError as e:
+        raise HTTPException(status_code=400, message=str(e))
 
-
-@router.get("/{section_uuid}", response_model=CustomSectionResponse)
-async def get_custom_section(
-    section_uuid: str,
+@router.get("/", response_model=List[CustomSectionResponse])
+def get_profile_custom_sections(
+    profile_uuid: str,
     current_user: User = Depends(get_current_user),
-    service: CustomSectionService = Depends(get_custom_section_service)
+    db: Session = Depends(get_db)
 ):
-    """Get a specific custom section by UUID"""
-    section = service.get_section_by_uuid(section_uuid)
-    if not section:
-        raise HTTPException(status_code=404, message="Custom section not found")
-    
-    # Check ownership
-    if not service.check_section_ownership(section_uuid, current_user.id):
-        raise HTTPException(status_code=403, message="Not authorized to access this custom section")
-    
-    return section
-
-
-@router.get("/user/{user_uuid}", response_model=List[CustomSectionResponse])
-async def get_user_custom_sections(
-    user_uuid: str,
-    skip: int = Query(0, ge=0, description="Number of records to skip"),
-    limit: int = Query(100, ge=1, le=1000, description="Maximum number of records to return"),
-    current_user: User = Depends(get_current_user),
-    service: CustomSectionService = Depends(get_custom_section_service)
-):
-    """Get all custom sections for a specific user (UUID-based)"""
-    # For now, users can only access their own custom sections
-    if user_uuid != current_user.uuid:
-        raise HTTPException(status_code=403, message="Not authorized to access other users' custom sections")
-    
-    return service.get_user_sections(current_user.id, skip, limit)
-
+    """Get all custom sections for the specified profile"""
+    check_profile_ownership(db, current_user, profile_uuid)
+    service = CustomSectionService(db)
+    return service.get_sections_by_profile(profile_uuid)
 
 @router.put("/{section_uuid}", response_model=CustomSectionResponse)
-async def update_custom_section(
-    section_uuid: str,
-    section_update: CustomSectionUpdate,
+def update_custom_section(
+    profile_uuid: str,
+    section_uuid: str, 
+    section_data: CustomSectionUpdate, 
     current_user: User = Depends(get_current_user),
-    service: CustomSectionService = Depends(get_custom_section_service)
+    db: Session = Depends(get_db)
 ):
-    """Update a custom section"""
-    # Check ownership
-    if not service.check_section_ownership(section_uuid, current_user.id):
-        raise HTTPException(status_code=403, message="Not authorized to update this custom section")
-    
-    updated_section = service.update_section(section_uuid, section_update)
-    if not updated_section:
+    """Update custom section information by UUID"""
+    check_profile_ownership(db, current_user, profile_uuid)
+    service = CustomSectionService(db)
+    section = service.update_custom_section_by_uuid(section_uuid, section_data)
+    if not section:
         raise HTTPException(status_code=404, message="Custom section not found")
-    return updated_section
+    return section
 
-
-@router.delete("/{section_uuid}", status_code=204)
-async def delete_custom_section(
-    section_uuid: str,
+@router.delete("/{section_uuid}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_custom_section(
+    profile_uuid: str,
+    section_uuid: str, 
     current_user: User = Depends(get_current_user),
-    service: CustomSectionService = Depends(get_custom_section_service)
+    db: Session = Depends(get_db)
 ):
-    """Delete a custom section"""
-    # Check ownership
-    if not service.check_section_ownership(section_uuid, current_user.id):
-        raise HTTPException(status_code=403, message="Not authorized to delete this custom section")
-    
-    success = service.delete_section(section_uuid)
-    if not success:
+    """Delete a custom section by UUID"""
+    check_profile_ownership(db, current_user, profile_uuid)
+    service = CustomSectionService(db)
+    if not service.delete_custom_section_by_uuid(section_uuid):
         raise HTTPException(status_code=404, message="Custom section not found")

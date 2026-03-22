@@ -17,6 +17,7 @@ class Skill(BaseEntity):
     category = Column(String)
     name = Column(String)
     proficiency = Column(String)
+    years_experience = Column(Integer, nullable=True)
     
     # Relationships
     profile = relationship("Profile", back_populates="skills")

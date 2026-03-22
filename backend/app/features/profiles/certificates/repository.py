@@ -7,10 +7,9 @@ class CertificateRepository:
     def __init__(self, db: Session):
         self.db = db
     
-    def create_with_user_id(self, user_id: int, certificate_data: CertificateCreate) -> Certificate:
+    def create_with_profile_id(self, profile_id: int, certificate_data: CertificateCreate) -> Certificate:
         data_dict = certificate_data.model_dump()
-        data_dict.pop('user_uuid', None)
-        data_dict['user_id'] = user_id
+        data_dict['profile_id'] = profile_id
         
         certificate = Certificate(**data_dict)
         self.db.add(certificate)
@@ -21,11 +20,9 @@ class CertificateRepository:
     def get_by_uuid(self, certificate_uuid: str) -> Optional[Certificate]:
         return self.db.query(Certificate).filter(Certificate.uuid == certificate_uuid).first()
     
-    def get_by_user_uuid(self, user_uuid: str, skip: int = 0, limit: int = 100) -> List[Certificate]:
-        from features.users.models import User
+    def get_by_profile_id(self, profile_id: int, skip: int = 0, limit: int = 100) -> List[Certificate]:
         return (self.db.query(Certificate)
-                .join(User)
-                .filter(User.uuid == user_uuid)
+                .filter(Certificate.profile_id == profile_id)
                 .order_by(Certificate.issue_date.desc())
                 .offset(skip)
                 .limit(limit)

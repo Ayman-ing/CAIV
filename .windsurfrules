@@ -1,0 +1,27 @@
+# CAIV Context & Rules
+
+## Project Overview
+Full-stack AI-powered resume builder. 
+Workflow: Profile setup -> Paste Job Description -> Hybrid AI Search -> Resume Generation.
+
+## Backend (FastAPI, Python 3.12+, PostgreSQL via uv)
+- **Path:** `backend/` (App is in `backend/app/`)
+- **Tools:** Use `uv` for package management.
+- **Architecture:** Feature-based Domain-Driven Layout (`features/{feature}/models.py`, `service.py`, `router.py`, `repository.py`, `schemas.py`).
+- **Database:** PostgreSQL with SQLAlchemy & Alembic.
+- **Rule:** When dealing with AI Embeddings, do NOT use nullable foreign keys. Rely exclusively on the unified inheritance-based global entity system (`BaseEntity` provides `entity_id` UUID to all components).
+- **Rule:** External IDs should be UUIDs, internal reference IDs can be standard Integers.
+
+## Frontend (Nuxt.js 3, Vue, Tailwind CSS)
+- **Path:** `frontend/` (App is in `frontend/app/`)
+- **Philosophy:** Direct inline logic over unnecessary abstraction layers. Simple functions over complex class hierarchies. Minimal composables.
+- **State Management:** Custom reactive stores (DO NOT use Pinia).
+- **File Structure:** `services/` for business logic/API calls, `stores/` for state.
+- **Formatting:** Single File Components (SFC). Always start with `<script setup lang="ts">` followed by `<template>`.
+- **UI Architecture:** Use `auth.vue` layout for protected dashboard pages. Light mode uses gray-100 base, with distinct shadows. Dark mode is fully supported via `useDarkMode`.
+- **Rule:** Implement inline validation at the component level to keep logic localized.
+
+## General Agent Guidelines
+1. Prefer simplicity and clean architecture over over-engineering.
+2. Ask clarifying questions before making large architectural shifts.
+3. Review `/docs/` and `claude.md` for any deeper technical context.

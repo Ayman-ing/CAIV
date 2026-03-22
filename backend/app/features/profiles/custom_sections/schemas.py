@@ -29,7 +29,9 @@ class CustomSectionBase(BaseModel):
 
 
 class CustomSectionCreate(CustomSectionBase):
-    profile_id: int = Field(..., ge=1, description="ID of the profile this section belongs to")
+    """Schema for creating custom section - profile_id comes from URL path"""
+    # profile_id is not part of the payload, it's passed separately
+    pass
 
 
 class CustomSectionUpdate(BaseModel):
@@ -52,7 +54,7 @@ class CustomSectionUpdate(BaseModel):
 
 class CustomSectionResponse(CustomSectionBase):
     uuid: uuid.UUID
-    profile_id: int
+    profile_id: int # Added profile_id to the response schema
     created_at: datetime
     updated_at: datetime
     

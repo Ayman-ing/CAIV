@@ -1,12 +1,16 @@
 <template>
-  <NuxtLayout>
   <div class="transition-colors duration-300 min-h-screen bg-background text-primary">
-    <NuxtPage />
+    <NuxtLayout>
+      <NuxtPage />
+    </NuxtLayout>
+    <ToastContainer />
   </div>
-  </NuxtLayout>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { onMounted } from 'vue'
+import ToastContainer from '~/components/ui/ToastContainer.vue'
+
 // Ensure theme is applied on initial load
 onMounted(() => {
   const savedTheme = localStorage.getItem('theme')

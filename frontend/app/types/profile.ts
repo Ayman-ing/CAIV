@@ -1,154 +1,114 @@
 // filepath: frontend/app/types/profile.ts
-// TypeScript interfaces matching the backend SQLAlchemy models
 
-export interface ProfileBasicInfo {
-  id?: number
-  name: string
-  email: string
-  phoneNumber: string
-  location: string
-  createdAt?: string
-  updatedAt?: string
+export interface Profile {
+  uuid: string
+  user_id: number
+  name: string | null
+  email: string | null
+  phone_number: string | null
+  location: string | null
+  created_at: string
+  updated_at: string
 }
 
+// Profile Sections
 export interface Education {
-  id?: number
-  profileId?: number
+  uuid: string
   institution: string
   degree: string
-  fieldOfStudy: string
-  honors?: string
-  gpa?: number
-  startDate: string // ISO date string
-  endDate?: string // ISO date string, nullable for ongoing
-  description?: string
-  createdAt?: string
-  updatedAt?: string
+  degree_type?: string
+  field_of_study: string | null
+  honors: string | null
+  gpa: number | null
+  start_date: string
+  end_date: string | null
+  description: string | null
+  created_at?: string
+  updated_at?: string
 }
 
 export interface WorkExperience {
-  id?: number
-  profileId?: number
-  jobTitle: string
+  uuid: string
+  job_title: string
   company: string
-  startDate: string // ISO date string
-  endDate?: string // ISO date string, nullable for current position
-  description: string
-  createdAt?: string
-  updatedAt?: string
-}
-
-export interface Skill {
-  id?: number
-  profileId?: number
-  category: string
-  name: string
-  proficiency: string // e.g., "Beginner", "Intermediate", "Advanced", "Expert"
-  createdAt?: string
-  updatedAt?: string
+  description: string | null
+  start_date: string
+  end_date: string | null
+  created_at?: string
+  updated_at?: string
 }
 
 export interface Project {
-  id?: number
-  profileId?: number
-  title: string
-  description: string
-  startDate: string // ISO date string
-  endDate?: string // ISO date string, nullable for ongoing
-  projectUrl?: string
-  createdAt?: string
-  updatedAt?: string
+  uuid: string
+  name: string
+  description: string | null
+  technologies: string | null
+  start_date: string
+  end_date: string | null
+  url: string | null
+  created_at?: string
+  updated_at?: string
+}
+
+export interface Skill {
+  uuid: string
+  name: string
+  category: string | null
+  proficiency: string | null
+  years_experience?: number | null
+  created_at?: string
+  updated_at?: string
 }
 
 export interface Certificate {
-  id?: number
-  profileId?: number
+  uuid: string
   name: string
-  issuer: string
-  issueDate: string // ISO date string
-  expirationDate?: string // ISO date string, nullable for non-expiring
-  credentialId?: string
-  credentialUrl?: string
-  createdAt?: string
-  updatedAt?: string
+  issuing_organization: string
+  issue_date: string
+  expiration_date: string | null
+  credential_id: string | null
+  created_at?: string
+  updated_at?: string
 }
 
 export interface Language {
-  id?: number
-  profileId?: number
+  uuid: string
   language: string
-  proficiency: string // e.g., "Native", "Fluent", "Conversational", "Basic"
-  createdAt?: string
-  updatedAt?: string
+  proficiency: string
+  can_read?: boolean
+  can_write?: boolean
+  can_speak?: boolean
+  created_at?: string
+  updated_at?: string
 }
 
 export interface ProfessionalSummary {
-  id?: number
-  profileId?: number
+  uuid: string
   title: string
-  summary: string
-  isDefault?: boolean
-  createdAt?: string
-  updatedAt?: string
+  content: string
+  is_default: boolean
+  created_at?: string
+  updated_at?: string
 }
 
 export interface ProfileLink {
-  id?: number
-  profileId?: number
-  platform: string // e.g., "LinkedIn", "GitHub", "Portfolio", "Website"
+  uuid: string
+  label: string
   url: string
-  displayName?: string
-  isPublic?: boolean
-  createdAt?: string
-  updatedAt?: string
+  platform: string
+  is_visible: boolean
+  created_at?: string
+  updated_at?: string
 }
 
-// Utility types for forms
-export interface EducationFormData extends Omit<Education, 'id' | 'profileId' | 'createdAt' | 'updatedAt'> {}
-export interface WorkExperienceFormData extends Omit<WorkExperience, 'id' | 'profileId' | 'createdAt' | 'updatedAt'> {}
-export interface SkillFormData extends Omit<Skill, 'id' | 'profileId' | 'createdAt' | 'updatedAt'> {}
-export interface ProjectFormData extends Omit<Project, 'id' | 'profileId' | 'createdAt' | 'updatedAt'> {}
-export interface CertificateFormData extends Omit<Certificate, 'id' | 'profileId' | 'createdAt' | 'updatedAt'> {}
-export interface LanguageFormData extends Omit<Language, 'id' | 'profileId' | 'createdAt' | 'updatedAt'> {}
-export interface ProfileLinkFormData extends Omit<ProfileLink, 'id' | 'profileId' | 'createdAt' | 'updatedAt'> {}
+export interface CustomSection {
+  uuid: string
+  title: string
+  content: string
+  order_index?: number
+  created_at?: string
+  updated_at?: string
+}
 
-// Constants for dropdowns and validation
-export const PROFICIENCY_LEVELS = {
-  SKILL: ['Beginner', 'Intermediate', 'Advanced', 'Expert'],
-  LANGUAGE: ['Basic', 'Conversational', 'Fluent', 'Native']
-} as const
-
-export const SKILL_CATEGORIES = [
-  'Programming Languages',
-  'Frameworks & Libraries',
-  'Databases',
-  'Cloud & DevOps',
-  'Design & UI/UX',
-  'Project Management',
-  'Soft Skills',
-  'Other'
-] as const
-
-export const LINK_PLATFORMS = [
-  'LinkedIn',
-  'GitHub',
-  'Portfolio',
-  'Website',
-  'Twitter',
-  'Behance',
-  'Dribbble',
-  'Medium',
-  'YouTube',
-  'Other'
-] as const
-
-export const DEGREE_TYPES = [
-  'High School Diploma',
-  'Associate Degree',
-  'Bachelor\'s Degree',
-  'Master\'s Degree',
-  'Doctoral Degree',
-  'Certificate',
-  'Diploma',
-  'Other'
-] as const
+export type ProfileCreate = Omit<Profile, 'uuid' | 'user_id' | 'created_at' | 'updated_at'>
+export type ProfileUpdate = Partial<ProfileCreate>

@@ -14,11 +14,12 @@ class Project(BaseEntity):
     
     # Project specific fields
     profile_id = Column(Integer, ForeignKey('profiles.id'))
-    title = Column(String)
+    name = Column(String)
     description = Column(String)
     start_date = Column(Date)
     end_date = Column(Date)
-    project_url = Column(String)
+    url = Column(String)
+    technologies = Column(String)  # Stored as comma-separated string
     
     # Relationships
     profile = relationship("Profile", back_populates="projects")

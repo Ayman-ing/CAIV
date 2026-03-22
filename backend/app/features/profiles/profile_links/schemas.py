@@ -12,88 +12,43 @@ import uuid
 import re
 
 
-class LinkPlatform(str, Enum):
-    LINKEDIN = "LinkedIn"
-    GITHUB = "GitHub"
-    PORTFOLIO = "Portfolio"
-    TWITTER = "Twitter"
-    BEHANCE = "Behance"
-    DRIBBBLE = "Dribbble"
-    MEDIUM = "Medium"
-    STACKOVERFLOW = "StackOverflow"
-    PERSONAL_WEBSITE = "Personal Website"
-    OTHER = "Other"
+class Platform(str, Enum):
+    LINKEDIN = "linkedin"
+    GITHUB = "github"
+    PORTFOLIO = "portfolio"
+    TWITTER = "twitter"
+    BEHANCE = "behance"
+    DRIBBBLE = "dribbble"
+    MEDIUM = "medium"
+    STACKOVERFLOW = "stackoverflow"
+    OTHER = "other"
 
 
 class ProfileLinkBase(BaseModel):
-    platform: LinkPlatform = Field(..., description="Platform type for the link")
+    label: str = Field(..., min_length=1, max_length=200, description="Custom label for the link")
     url: HttpUrl = Field(..., description="Valid URL for the platform")
-
-    @validator('url')
-    def validate_url_for_platform(cls, v, values):
-        platform = values.get('platform')
-        url_str = str(v)
-        
-        platform_patterns = {
-            LinkPlatform.LINKEDIN: r'linkedin\.com',
-            LinkPlatform.GITHUB: r'github\.com',
-            LinkPlatform.TWITTER: r'(twitter\.com|x\.com)',
-            LinkPlatform.BEHANCE: r'behance\.net',
-            LinkPlatform.DRIBBBLE: r'dribbble\.com',
-            LinkPlatform.MEDIUM: r'medium\.com',
-            LinkPlatform.STACKOVERFLOW: r'stackoverflow\.com'
-        }
-        
-        if platform in platform_patterns:
-            pattern = platform_patterns[platform]
-            if not re.search(pattern, url_str, re.IGNORECASE):
-                raise ValueError(f'URL must be from {platform.value} domain')
-        
-        return v
+    platform: Platform = Field(..., description="Type of link (linkedin, github, etc)")
+    is_visible: bool = Field(default=True, description="Whether the link is visible in the resume")
 
 
 class ProfileLinkCreate(ProfileLinkBase):
-    profile_id: int = Field(..., ge=1, description="ID of the profile this link belongs to")
+    """Schema for creating profile link - profile_id comes from URL path"""
+    pass
 
 
 class ProfileLinkUpdate(BaseModel):
-    platform: Optional[LinkPlatform] = None
+    label: Optional[str] = Field(None, min_length=1, max_length=200)
     url: Optional[HttpUrl] = None
-
-    @validator('url')
-    def validate_url_for_platform(cls, v, values):
-        if v is None:
-            return v
-            
-        platform = values.get('platform')
-        if platform is None:
-            return v
-            
-        url_str = str(v)
-        
-        platform_patterns = {
-            LinkPlatform.LINKEDIN: r'linkedin\.com',
-            LinkPlatform.GITHUB: r'github\.com',
-            LinkPlatform.TWITTER: r'(twitter\.com|x\.com)',
-            LinkPlatform.BEHANCE: r'behance\.net',
-            LinkPlatform.DRIBBBLE: r'dribbble\.com',
-            LinkPlatform.MEDIUM: r'medium\.com',
-            LinkPlatform.STACKOVERFLOW: r'stackoverflow\.com'
-        }
-        
-        if platform in platform_patterns:
-            pattern = platform_patterns[platform]
-            if not re.search(pattern, url_str, re.IGNORECASE):
-                raise ValueError(f'URL must be from {platform.value} domain')
-        
-        return v
+    platform: Optional[Platform] = None
+    is_visible: Optional[bool] = None
 
 
 class ProfileLinkResponse(ProfileLinkBase):
     uuid: uuid.UUID
-    profile_id: int
     created_at: datetime
     updated_at: datetime
     
+    class Config:
+        from_attributes = True
     class Config:
         from_attributes = True

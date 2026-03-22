@@ -22,11 +22,12 @@ class ProfessionalSummaryCreate(ProfessionalSummaryBase):
 class ProfessionalSummaryUpdate(BaseModel):
     title: Optional[str] = None
     content: Optional[str] = None
+    is_default: Optional[bool] = None
 
 
 class ProfessionalSummaryResponse(ProfessionalSummaryBase):
     uuid: uuid.UUID
-    user_id: int
+    is_default: bool
     created_at: datetime
     updated_at: datetime
     

@@ -11,6 +11,7 @@ from .resumes import resume_router
 from .profiles import profile_router
 from .profiles.custom_sections import custom_section_router
 from .profiles.profile_links import profile_link_router
+from .profiles.professional_summaries.router import router as professional_summaries_router
 from .job_descriptions import job_description_router
 
 
@@ -28,6 +29,7 @@ feature_routers = [
     profile_router,
     custom_section_router,
     profile_link_router,
+    professional_summaries_router,
     job_description_router,
 ]
 

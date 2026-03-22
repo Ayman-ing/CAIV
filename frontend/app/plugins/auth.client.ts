@@ -11,4 +11,13 @@ export default defineNuxtPlugin(async () => {
   // Check if user is authenticated (token exists and is valid)
   await authService.checkAuthStatus()
   
+  // Fetch user profiles upon hard refresh if auth succeeded
+  if (store.isAuthenticated.value) {
+    const { profileService } = await import('~/services/profileService')
+    try {
+      await profileService.fetchUserProfiles()
+    } catch (e) {
+      console.error("Failed to fetch initial profile", e)
+    }
+  }
 })

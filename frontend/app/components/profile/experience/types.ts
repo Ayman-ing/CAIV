@@ -1,23 +1,13 @@
 // filepath: frontend/app/components/profile/experience/types.ts
-// Work Experience TypeScript interfaces matching backend WorkExperience model
+import type { WorkExperience as BaseWorkExperience } from '@/types/profile'
 
-export interface WorkExperience {
-  id?: number
-  profileId?: number
-  jobTitle: string
-  company: string
-  startDate: string // ISO date string
-  endDate?: string // ISO date string, nullable for current job
-  description?: string
-  createdAt?: string
-  updatedAt?: string
-}
+export type WorkExperience = BaseWorkExperience
 
 export interface ExperienceFormData {
-  jobTitle: string
+  job_title: string
   company: string
-  startDate: string
-  endDate: string
+  start_date: string
+  end_date: string
   description: string
   isCurrentJob: boolean
 }
@@ -44,16 +34,6 @@ export interface ExperienceState {
 // For display and calculations
 export interface ExperienceDisplay extends WorkExperience {
   displayDateRange: string
-  durationMonths: number
   durationText: string
   isCurrentPosition: boolean
-  achievements: ExperienceAchievement[]
-}
-
-// For experience summary calculations
-export interface ExperienceSummary {
-  totalPositions: number
-  totalYearsExperience: number
-  currentPosition?: WorkExperience
-  industries: string[]
 }

@@ -1,109 +1,76 @@
-"""
-User Link Router
-
-FastAPI routes for user link management.
-"""
-
-from typing import List
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, status
 from core.exceptions import HTTPException
 from sqlalchemy.orm import Session
+from typing import List
 
 from db.session import get_db
 from features.auth.dependencies import get_current_user
 from features.users.models import User
-from features.profiles.profile_links.repository import ProfileLinkRepository
-from features.profiles.profile_links.service import ProfileLinkService
-from features.profiles.profile_links.schemas import ProfileLinkCreate, ProfileLinkUpdate, ProfileLinkResponse
+from .service import ProfileLinkService
+from .schemas import ProfileLinkCreate, ProfileLinkUpdate, ProfileLinkResponse
+from features.profiles.repository import ProfileRepository
 
-router = APIRouter(prefix="/api/v1/profiles/{profile_id}/links", tags=["profile-links"])
+router = APIRouter(prefix="/api/v1/profiles/{profile_uuid}/links", tags=["profile-links"])
 
+def check_profile_ownership(db: Session, current_user: User, profile_uuid: str):
+    """Ensure the user owns the profile they are trying to manipulate"""
+    repo = ProfileRepository(db)
+    profile = repo.get_by_uuid(profile_uuid)
+    if not profile or profile.user_id != current_user.id:
+        raise HTTPException(status_code=403, message="Not authorized to access this profile's links")
+    return profile
 
-def get_profile_link_service(db: Session = Depends(get_db)) -> ProfileLinkService:
-    """Dependency to get user link service"""
-    repository = ProfileLinkRepository(db)
-    return ProfileLinkService(repository)
-
-
-@router.post("/", response_model=ProfileLinkResponse, status_code=201)
-async def create_user_link(
-    link_data: ProfileLinkCreate,
+@router.post("/", response_model=ProfileLinkResponse, status_code=status.HTTP_201_CREATED)
+def create_link(
+    profile_uuid: str,
+    link_data: ProfileLinkCreate, 
     current_user: User = Depends(get_current_user),
-    service: ProfileLinkService = Depends(get_profile_link_service)
+    db: Session = Depends(get_db)
 ):
-    """Create a new user link for the current user"""
+    """Create a new link for the specified profile"""
+    check_profile_ownership(db, current_user, profile_uuid)
+    service = ProfileLinkService(db)
     try:
-        return service.create_link(current_user.id, link_data)
+        return service.create_link(profile_uuid, link_data)
     except ValueError as e:
         raise HTTPException(status_code=400, message=str(e))
 
-
-@router.get("/{link_uuid}", response_model=ProfileLinkResponse)
-async def get_user_link(
-    link_uuid: str,
+@router.get("/", response_model=List[ProfileLinkResponse])
+def get_profile_links(
+    profile_uuid: str,
     current_user: User = Depends(get_current_user),
-    service: ProfileLinkService = Depends(get_profile_link_service)
+    db: Session = Depends(get_db)
 ):
-    """Get a specific user link by UUID"""
-    link = service.get_link_by_uuid(link_uuid)
-    if not link:
-        raise HTTPException(status_code=404, message="User link not found")
-    
-    # Check ownership
-    if not service.check_link_ownership(link_uuid, current_user.id):
-        raise HTTPException(status_code=403, message="Not authorized to access this link")
-    
-    return link
-
-
-@router.get("/user/{user_uuid}", response_model=List[ProfileLinkResponse])
-async def get_profile_links(
-    user_uuid: str,
-    skip: int = Query(0, ge=0, description="Number of records to skip"),
-    limit: int = Query(100, ge=1, le=1000, description="Maximum number of records to return"),
-    current_user: User = Depends(get_current_user),
-    service: ProfileLinkService = Depends(get_profile_link_service)
-):
-    """Get all links for a specific user (UUID-based)"""
-    # For now, users can only access their own links
-    if user_uuid != current_user.uuid:
-        raise HTTPException(status_code=403, message="Not authorized to access other users' links")
-    
-    return service.get_profile_links(current_user.id, skip, limit)
-
+    """Get all links for the specified profile"""
+    check_profile_ownership(db, current_user, profile_uuid)
+    service = ProfileLinkService(db)
+    return service.get_links_by_profile(profile_uuid)
 
 @router.put("/{link_uuid}", response_model=ProfileLinkResponse)
-async def update_profile_link(
-    link_uuid: str,
-    link_update: ProfileLinkUpdate,
+def update_link(
+    profile_uuid: str,
+    link_uuid: str, 
+    link_data: ProfileLinkUpdate, 
     current_user: User = Depends(get_current_user),
-    service: ProfileLinkService = Depends(get_profile_link_service)
+    db: Session = Depends(get_db)
 ):
-    """Update a user link"""
-    # Check ownership
-    if not service.check_link_ownership(link_uuid, current_user.id):
-        raise HTTPException(status_code=403, message="Not authorized to update this link")
-    
-    try:
-        updated_link = service.update_link(link_uuid, link_update)
-        if not updated_link:
-            raise HTTPException(status_code=404, message="User link not found")
-        return updated_link
-    except ValueError as e:
-        raise HTTPException(status_code=400, message=str(e))
+    """Update link information by UUID"""
+    check_profile_ownership(db, current_user, profile_uuid)
+    service = ProfileLinkService(db)
+    link = service.update_link_by_uuid(link_uuid, link_data)
+    if not link:
+        raise HTTPException(status_code=404, message="Link not found")
+    return link
 
-
-@router.delete("/{link_uuid}", status_code=204)
-async def delete_user_link(
-    link_uuid: str,
+@router.delete("/{link_uuid}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_link(
+    profile_uuid: str,
+    link_uuid: str, 
     current_user: User = Depends(get_current_user),
-    service: ProfileLinkService = Depends(get_profile_link_service)
+    db: Session = Depends(get_db)
 ):
-    """Delete a user link"""
-    # Check ownership
-    if not service.check_link_ownership(link_uuid, current_user.id):
-        raise HTTPException(status_code=403, message="Not authorized to delete this link")
-    
-    success = service.delete_link(link_uuid)
-    if not success:
-        raise HTTPException(status_code=404, message="User link not found")
+    """Delete a link by UUID"""
+    check_profile_ownership(db, current_user, profile_uuid)
+    service = ProfileLinkService(db)
+    if not service.delete_link_by_uuid(link_uuid):
+        raise HTTPException(status_code=404, message="Link not found")

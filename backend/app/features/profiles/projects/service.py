@@ -2,31 +2,30 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 from .repository import ProjectRepository
 from .schemas import ProjectCreate, ProjectUpdate, ProjectResponse
-from features.users.repository import UserRepository
+from features.profiles.repository import ProfileRepository
 
 class ProjectService:
     def __init__(self, db: Session):
         self.repository = ProjectRepository(db)
-        self.user_repository = UserRepository(db)
+        self.profile_repository = ProfileRepository(db)
     
-    def create_project(self, project_data: ProjectCreate) -> ProjectResponse:
-        user = self.user_repository.get_by_uuid(project_data.user_uuid)
-        if not user:
-            raise ValueError("User not found")
+    def create_project(self, profile_uuid: str, project_data: ProjectCreate) -> ProjectResponse:
+        profile = self.profile_repository.get_by_uuid(profile_uuid)
+        if not profile:
+            raise ValueError("Profile not found")
         
-        project = self.repository.create_with_user_id(user.id, project_data)
+        project = self.repository.create_with_profile_id(profile.id, project_data)
         return ProjectResponse.model_validate(project)
     
     def get_project_by_uuid(self, project_uuid: str) -> Optional[ProjectResponse]:
         project = self.repository.get_by_uuid(project_uuid)
         return ProjectResponse.model_validate(project) if project else None
     
-    def get_user_projects_by_uuid(self, user_uuid: str, skip: int = 0, limit: int = 100) -> List[ProjectResponse]:
-        projects = self.repository.get_by_user_uuid(user_uuid, skip, limit)
-        return [ProjectResponse.model_validate(p) for p in projects]
-    
-    def list_projects(self, skip: int = 0, limit: int = 100) -> List[ProjectResponse]:
-        projects = self.repository.get_all(skip, limit)
+    def get_projects_by_profile(self, profile_uuid: str, skip: int = 0, limit: int = 100) -> List[ProjectResponse]:
+        profile = self.profile_repository.get_by_uuid(profile_uuid)
+        if not profile:
+            return []
+        projects = self.repository.get_by_profile_id(profile.id, skip, limit)
         return [ProjectResponse.model_validate(p) for p in projects]
     
     def update_project_by_uuid(self, project_uuid: str, project_data: ProjectUpdate) -> Optional[ProjectResponse]:

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -14,8 +14,12 @@ class ProfileLink(BaseEntity):
     
     # ProfileLink specific fields
     profile_id = Column(Integer, ForeignKey('profiles.id'))
+    label = Column(String)
+    url = Column(String)
     platform = Column(String)
-    url = Column(String)    # Relationships
+    is_visible = Column(Boolean, default=True)
+    
+    # Relationships
     profile = relationship("Profile", back_populates="profile_links")
     # embeddings relationship is inherited from BaseEntity
     

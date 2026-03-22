@@ -4,13 +4,12 @@ import jwt
 from passlib.context import CryptContext
 from fastapi import status
 from core.exceptions import HTTPException
-import os
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from features.users.models import User, UserRole
 from .repository import AuthRepository
-from .schemas import UserRegister, PasswordChange, PasswordReset, PasswordResetConfirm
+from .schemas import PasswordChange, PasswordReset, PasswordResetConfirm
 from core.config import get_settings
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -88,6 +87,15 @@ class AuthService:
             last_name=user_data.last_name,
             role=role
         )
+        
+        # Automatically create an empty linked profile respecting domain architecture
+        from features.profiles.service import ProfileService
+        from features.profiles.repository import ProfileRepository
+        from features.profiles.schemas import ProfileCreate
+        
+        profile_service = ProfileService(ProfileRepository(self.db))
+        profile_data = ProfileCreate(name=f"{user.first_name} {user.last_name}".strip())
+        profile_service.create_profile(user.id, profile_data)
         
         # Create access token with enhanced payload
         access_token = self.create_access_token(data={

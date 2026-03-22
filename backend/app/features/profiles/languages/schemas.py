@@ -32,7 +32,6 @@ class LanguageUpdate(BaseModel):
 class LanguageResponse(LanguageBase):
     uuid: uuid.UUID
     profile_id: int = Field(..., description="Profile this language belongs to")
-    user_id: int = Field(..., description="User who owns this language")
     created_at: datetime
     updated_at: datetime
     

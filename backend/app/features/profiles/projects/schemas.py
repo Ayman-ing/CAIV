@@ -4,12 +4,12 @@ from typing import Optional, List
 import uuid
 
 class ProjectBase(BaseModel):
-    title: str = Field(..., min_length=1, max_length=200, description="Project title")
+    name: str = Field(..., min_length=1, max_length=200, description="Project name")
     description: Optional[str] = Field(None, max_length=2000, description="Project description")
     start_date: date = Field(..., description="Project start date")
     end_date: Optional[date] = Field(None, description="Project end date (None if ongoing)")
-    project_url: Optional[HttpUrl] = Field(None, description="Project URL or repository link")
-    technologies: Optional[List[str]] = Field(None, description="Technologies used in the project")
+    url: Optional[HttpUrl] = Field(None, description="Project URL or repository link")
+    technologies: Optional[str] = Field(None, max_length=1000, description="Comma-separated technologies used")
     
     @validator('end_date')
     def validate_end_date(cls, v, values):
@@ -22,12 +22,12 @@ class ProjectCreate(ProjectBase):
     pass
 
 class ProjectUpdate(BaseModel):
-    title: Optional[str] = Field(None, min_length=1, max_length=200)
+    name: Optional[str] = Field(None, min_length=1, max_length=200)
     description: Optional[str] = Field(None, max_length=2000)
     start_date: Optional[date] = None
     end_date: Optional[date] = None
-    project_url: Optional[HttpUrl] = None
-    technologies: Optional[List[str]] = None
+    url: Optional[HttpUrl] = None
+    technologies: Optional[str] = Field(None, max_length=1000)
     
     @validator('end_date')
     def validate_end_date(cls, v, values):
@@ -37,8 +37,6 @@ class ProjectUpdate(BaseModel):
 
 class ProjectResponse(ProjectBase):
     uuid: uuid.UUID
-    profile_id: int = Field(..., description="Profile this project belongs to")
-    user_id: int = Field(..., description="User who owns this project")
     created_at: datetime
     updated_at: datetime
     

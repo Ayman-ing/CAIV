@@ -31,6 +31,27 @@ class CustomSectionRepository:
         """Get custom section by UUID"""
         return self.db.query(CustomSection).filter(CustomSection.uuid == section_uuid).first()
     
+    def create_with_profile_id(self, profile_id: int, section_data: CustomSectionCreate) -> CustomSection:
+        """Create a new custom section for a profile"""
+        db_section = CustomSection(
+            profile_id=profile_id,
+            **section_data.model_dump()
+        )
+        self.db.add(db_section)
+        self.db.commit()
+        self.db.refresh(db_section)
+        return db_section
+    
+    def get_by_profile_id(self, profile_id: int, skip: int = 0, limit: int = 100) -> List[CustomSection]:
+        """Get all custom sections for a profile"""
+        return (
+            self.db.query(CustomSection)
+            .filter(CustomSection.profile_id == profile_id)
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+    
     def get_user_sections(self, user_id: int, skip: int = 0, limit: int = 100) -> List[CustomSection]:
         """Get all custom sections for a user, ordered by order_index"""
         return (

@@ -1,28 +1,58 @@
 <script setup lang="ts">
 // filepath: frontend/app/components/profile/experience/ExperienceSection.vue
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import CollapsibleSection from '~/components/ui/CollapsibleSection.vue'
 import Modal from '~/components/ui/Modal.vue'
+import { useToast } from '~/composables/useToast'
 import type { WorkExperience, ExperienceFormData, ExperienceDisplay } from './types'
+import { useProfileStore } from '~/stores/profileStore'
+import { profileSectionsService } from '~/services/profileSectionsService'
 
-// Work Experience Data
-const workExperiences = ref<WorkExperience[]>([])
+const profileStore = useProfileStore()
+const activeProfile = profileStore.activeProfile
+const { success, error } = useToast()
+
+// Experience Data
+const experienceList = ref<WorkExperience[]>([])
 const isExpanded = ref(false)
+const isLoading = ref(false)
 
 // Modal state
 const isModalOpen = ref(false)
 const isEditing = ref(false)
 const editingExperience = ref<WorkExperience | null>(null)
 
+// Delete confirmation modal state
+const isDeleteModalOpen = ref(false)
+const experienceToDelete = ref<WorkExperience | null>(null)
+const isDeleting = ref(false)
+
 // Form state
 const formData = ref<ExperienceFormData>({
-  jobTitle: '',
+  job_title: '',
   company: '',
-  startDate: '',
-  endDate: '',
+  start_date: '',
+  end_date: '',
   description: '',
   isCurrentJob: false
 })
+
+onMounted(async () => {
+  await fetchExperience()
+})
+
+const fetchExperience = async () => {
+  if (!activeProfile.value?.uuid) return
+  isLoading.value = true
+  try {
+    const data = await profileSectionsService.getAllWorkExperiences(activeProfile.value.uuid)
+    experienceList.value = data
+  } catch (error) {
+    console.error('Failed to fetch work experience:', error)
+  } finally {
+    isLoading.value = false
+  }
+}
 
 const toggleSection = () => {
   isExpanded.value = !isExpanded.value
@@ -32,239 +62,216 @@ const openAddModal = () => {
   isEditing.value = false
   editingExperience.value = null
   formData.value = {
-    jobTitle: '',
+    job_title: '',
     company: '',
-    startDate: '',
-    endDate: '',
+    start_date: '',
+    end_date: '',
     description: '',
     isCurrentJob: false
   }
   isModalOpen.value = true
 }
 
-const openEditModal = (experience: WorkExperience) => {
+const openEditModal = (exp: WorkExperience) => {
   isEditing.value = true
-  editingExperience.value = experience
+  editingExperience.value = exp
   formData.value = {
-    jobTitle: experience.jobTitle,
-    company: experience.company,
-    startDate: experience.startDate,
-    endDate: experience.endDate || '',
-    description: experience.description || '',
-    isCurrentJob: !experience.endDate
+    job_title: exp.job_title,
+    company: exp.company,
+    start_date: exp.start_date,
+    end_date: exp.end_date || '',
+    description: exp.description || '',
+    isCurrentJob: !exp.end_date
   }
   isModalOpen.value = true
 }
 
-const handleSave = () => {
-  if (isEditing.value && editingExperience.value) {
-    // Update existing experience
-    const index = workExperiences.value.findIndex(exp => exp.id === editingExperience.value!.id)
-    if (index !== -1 && workExperiences.value[index]) {
-      workExperiences.value[index] = {
-        ...workExperiences.value[index],
-        jobTitle: formData.value.jobTitle.trim(),
-        company: formData.value.company.trim(),
-        startDate: formData.value.startDate,
-        endDate: formData.value.isCurrentJob ? undefined : formData.value.endDate,
-        description: formData.value.description.trim()
-      }
-    }
-  } else {
-    // Add new experience
-    const newExperience: WorkExperience = {
-      id: Date.now(),
-      jobTitle: formData.value.jobTitle.trim(),
-      company: formData.value.company.trim(),
-      startDate: formData.value.startDate,
-      endDate: formData.value.isCurrentJob ? undefined : formData.value.endDate,
-      description: formData.value.description.trim(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
-    workExperiences.value.push(newExperience)
-  }
+const handleSave = async () => {
+  if (!activeProfile.value?.uuid) return
   
-  closeModal()
+  const payload: Omit<WorkExperience, 'uuid'> = {
+    job_title: formData.value.job_title.trim(),
+    company: formData.value.company.trim(),
+    description: formData.value.description.trim() || null,
+    start_date: formData.value.start_date,
+    end_date: formData.value.isCurrentJob ? null : formData.value.end_date
+  }
+
+  try {
+    if (isEditing.value && editingExperience.value) {
+      await profileSectionsService.updateWorkExperience(
+        activeProfile.value.uuid,
+        editingExperience.value.uuid,
+        payload
+      )
+      success('Work experience updated successfully!')
+    } else {
+      await profileSectionsService.createWorkExperience(activeProfile.value.uuid, payload)
+      success('Work experience added successfully!')
+    }
+    await fetchExperience()
+    closeModal()
+  } catch (err) {
+    console.error('Failed to save work experience:', err)
+    error(`Failed to save work experience: ${err instanceof Error ? err.message : 'Unknown error'}`)
+  }
 }
 
 const closeModal = () => {
   isModalOpen.value = false
   editingExperience.value = null
-  formData.value = {
-    jobTitle: '',
-    company: '',
-    startDate: '',
-    endDate: '',
-    description: '',
-    isCurrentJob: false
-  }
 }
 
-const removeExperience = (id: number) => {
-  const index = workExperiences.value.findIndex(exp => exp.id === id)
-  if (index !== -1) {
-    workExperiences.value.splice(index, 1)
+const openDeleteModal = (experience: WorkExperience) => {
+  experienceToDelete.value = experience
+  isDeleteModalOpen.value = true
+}
+
+const closeDeleteModal = () => {
+  isDeleteModalOpen.value = false
+  experienceToDelete.value = null
+}
+
+const confirmDelete = async () => {
+  if (!activeProfile.value?.uuid || !experienceToDelete.value) return
+  
+  isDeleting.value = true
+  try {
+    await profileSectionsService.deleteWorkExperience(activeProfile.value.uuid, experienceToDelete.value.uuid)
+    await fetchExperience()
+    closeDeleteModal()
+    success('Work experience deleted successfully!')
+  } catch (err) {
+    console.error('Failed to delete work experience:', err)
+    error(`Failed to delete work experience: ${err instanceof Error ? err.message : 'Unknown error'}`)
+  } finally {
+    isDeleting.value = false
   }
 }
 
 const isFormValid = computed(() => {
-  return formData.value.jobTitle.trim() !== '' && 
+  return formData.value.job_title.trim() !== '' && 
          formData.value.company.trim() !== '' && 
-         formData.value.startDate !== '' &&
-         (formData.value.isCurrentJob || formData.value.endDate !== '')
+         formData.value.start_date !== '' &&
+         (formData.value.isCurrentJob || formData.value.end_date !== '')
 })
 
 const hasExperience = computed(() => {
-  return workExperiences.value.length > 0
+  return experienceList.value.length > 0
 })
 
-// Enhanced display data with calculations
-const displayExperiences = computed((): ExperienceDisplay[] => {
-  return workExperiences.value.map(exp => {
-    const startDate = new Date(exp.startDate)
-    const endDate = exp.endDate ? new Date(exp.endDate) : new Date()
-    const monthsDiff = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth())
-    
+// Enhanced display data
+const displayExperience = computed((): ExperienceDisplay[] => {
+  return experienceList.value.map(exp => {
     const formatDate = (dateStr: string) => {
       const date = new Date(dateStr)
       return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
     }
     
-    const getDurationText = (months: number) => {
-      const years = Math.floor(months / 12)
-      const remainingMonths = months % 12
-      
-      if (years === 0) return `${remainingMonths} month${remainingMonths !== 1 ? 's' : ''}`
-      if (remainingMonths === 0) return `${years} year${years !== 1 ? 's' : ''}`
-      return `${years} year${years !== 1 ? 's' : ''}, ${remainingMonths} month${remainingMonths !== 1 ? 's' : ''}`
-    }
-    
     return {
       ...exp,
-      displayDateRange: `${formatDate(exp.startDate)} - ${exp.endDate ? formatDate(exp.endDate) : 'Present'}`,
-      durationMonths: monthsDiff,
-      durationText: getDurationText(monthsDiff),
-      isCurrentPosition: !exp.endDate,
-      achievements: [] // TODO: Parse description for achievements
+      displayDateRange: `${formatDate(exp.start_date)} - ${exp.end_date ? formatDate(exp.end_date) : 'Present'}`,
+      isCurrentPosition: !exp.end_date,
+      durationText: '' // Simplified for now
     } as ExperienceDisplay
-  }).sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
-})
-
-const totalExperience = computed(() => {
-  const totalMonths = displayExperiences.value.reduce((sum, exp) => sum + exp.durationMonths, 0)
-  const years = Math.floor(totalMonths / 12)
-  const months = totalMonths % 12
-  
-  if (years === 0) return `${months} month${months !== 1 ? 's' : ''}`
-  if (months === 0) return `${years} year${years !== 1 ? 's' : ''}`
-  return `${years} year${years !== 1 ? 's' : ''}, ${months} month${months !== 1 ? 's' : ''}`
+  }).sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime())
 })
 </script>
 
 <template>
   <CollapsibleSection
     title="Work Experience"
-    description="Your professional work history"
+    description="Your professional history and career milestones"
     icon="mdi:briefcase"
-    icon-color="text-indigo-600 dark:text-indigo-400"
-    icon-bg-color="bg-indigo-100 dark:bg-indigo-900/30"
-    button-color="bg-indigo-600 dark:bg-indigo-500 hover:bg-indigo-700 dark:hover:bg-indigo-600"
+    icon-color="text-blue-600 dark:text-blue-400"
+    icon-bg-color="bg-blue-100 dark:bg-blue-900/30"
+    button-color="bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600"
     :is-expanded="isExpanded"
-    :is-empty="!hasExperience"
+    :is-empty="!isLoading && experienceList.length === 0"
     empty-message="Add your work experience"
     add-button-text="Add Experience"
     @toggle="toggleSection"
     @add="openAddModal"
   >
+    <!-- Loading State -->
+    <div v-if="isLoading" class="flex justify-center p-8 text-blue-600">
+      <Icon name="mdi:loading" class="w-8 h-8 animate-spin" />
+    </div>
+
     <!-- Display Mode -->
-    <div v-if="hasExperience" class="space-y-6">
+    <div v-else-if="hasExperience" class="space-y-6">
       <!-- Summary Stats -->
-      <div class="flex items-center justify-between p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
+      <div class="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
         <div class="flex items-center space-x-4">
           <div class="flex items-center space-x-2">
-            <Icon name="mdi:briefcase-check" class="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            <Icon name="mdi:briefcase-outline" class="w-5 h-5 text-blue-600 dark:text-blue-400" />
             <div>
-              <p class="text-sm font-medium text-indigo-700 dark:text-indigo-300">Total Experience</p>
-              <p class="text-xs text-indigo-600 dark:text-indigo-400">{{ totalExperience }}</p>
-            </div>
-          </div>
-          
-          <div class="flex items-center space-x-2">
-            <Icon name="mdi:office-building" class="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-            <div>
-              <p class="text-sm font-medium text-indigo-700 dark:text-indigo-300">Positions</p>
-              <p class="text-xs text-indigo-600 dark:text-indigo-400">{{ workExperiences.length }} role{{ workExperiences.length !== 1 ? 's' : '' }}</p>
+              <p class="text-sm font-medium text-blue-700 dark:text-blue-300">Experience</p>
+              <p class="text-xs text-blue-600 dark:text-blue-400">{{ displayExperience.length }} position{{ displayExperience.length !== 1 ? 's' : '' }}</p>
             </div>
           </div>
         </div>
         
         <button
           @click="openAddModal"
-          class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-lg transition-colors flex items-center"
+          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg transition-colors flex items-center"
         >
           <Icon name="mdi:plus" class="w-4 h-4 mr-2" />
           Add Experience
         </button>
       </div>
 
-      <!-- Experience Timeline -->
-      <div class="space-y-4">
-        <div v-for="experience in displayExperiences" :key="experience.id" class="relative p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-          <!-- Current Position Badge -->
-          <div v-if="experience.isCurrentPosition" class="absolute top-4 right-4">
-            <span class="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 rounded-full">
-              Current Position
-            </span>
-          </div>
-          
-          <!-- Job Title & Company -->
-          <div class="mb-4">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
-              {{ experience.jobTitle }}
-            </h3>
-            <div class="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
-              <Icon name="mdi:office-building" class="w-4 h-4" />
-              <span class="font-medium">{{ experience.company }}</span>
-            </div>
-          </div>
-          
-          <!-- Date Range & Duration -->
-          <div class="flex items-center justify-between mb-4 text-sm text-gray-500 dark:text-gray-400">
-            <div class="flex items-center space-x-2">
-              <Icon name="mdi:calendar" class="w-4 h-4" />
-              <span>{{ experience.displayDateRange }}</span>
-            </div>
-            <div class="flex items-center space-x-2">
-              <Icon name="mdi:clock-outline" class="w-4 h-4" />
-              <span>{{ experience.durationText }}</span>
-            </div>
-          </div>
-          
-          <!-- Description -->
-          <div v-if="experience.description" class="mb-4">
-            <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">{{ experience.description }}</p>
-          </div>
-          
-          <!-- Actions -->
-          <div class="flex items-center justify-end space-x-2 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <button
-              @click="openEditModal(experience)"
-              class="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center"
-            >
-              <Icon name="mdi:pencil" class="w-4 h-4 mr-1" />
-              Edit
-            </button>
-            
-            <button
-              @click="removeExperience(experience.id!)"
-              class="px-3 py-1.5 text-sm bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors flex items-center"
-            >
-              <Icon name="mdi:delete" class="w-4 h-4 mr-1" />
-              Remove
-            </button>
+      <!-- Experience List -->
+      <div class="space-y-6">
+        <div v-for="exp in displayExperience" :key="exp.uuid" class="relative p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+        <!-- Current Job Badge -->
+        <div v-if="exp.isCurrentPosition" class="absolute top-4 right-4">
+          <span class="px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-full">
+            Current Position
+          </span>
+        </div>
+        
+        <!-- Job Title & Company -->
+        <div class="mb-4">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
+            {{ exp.job_title }}
+          </h3>
+          <div class="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
+            <Icon name="mdi:office-building" class="w-4 h-4" />
+            <span class="font-medium">{{ exp.company }}</span>
           </div>
         </div>
+        
+        <!-- Date Range -->
+        <div class="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400 mb-4">
+          <Icon name="mdi:calendar" class="w-4 h-4" />
+          <span>{{ exp.displayDateRange }}</span>
+        </div>
+        
+        <!-- Description -->
+        <div v-if="exp.description" class="mb-4">
+          <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed text-sm">{{ exp.description }}</p>
+        </div>
+        
+        <!-- Actions -->
+        <div class="flex items-center justify-end space-x-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <button
+            @click="openEditModal(exp)"
+            class="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center"
+          >
+            <Icon name="mdi:pencil" class="w-4 h-4 mr-1" />
+            Edit
+          </button>
+          
+          <button
+            @click="openDeleteModal(exp)"
+            class="px-3 py-1.5 text-sm bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors flex items-center"
+          >
+            <Icon name="mdi:delete" class="w-4 h-4 mr-1" />
+            Remove
+          </button>
+        </div>
+      </div>
       </div>
     </div>
   </CollapsibleSection>
@@ -272,37 +279,26 @@ const totalExperience = computed(() => {
   <!-- Add/Edit Modal -->
   <Modal
     v-model="isModalOpen"
-    :title="isEditing ? 'Edit Experience' : 'Add Work Experience'"
+    :title="isEditing ? 'Edit Experience' : 'Add Experience'"
     size="xl"
     @close="closeModal"
   >
-    <template #header>
-      <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-        {{ isEditing ? 'Edit Experience' : 'Add Work Experience' }}
-      </h2>
-    </template>
-    
     <div class="grid grid-cols-2 gap-6">
-      <!-- Job Title -->
-      <div>
-        <label for="jobTitle" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+      <div class="col-span-2">
+        <label for="job_title" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Job Title *
         </label>
         <input
-          id="jobTitle"
-          v-model="formData.jobTitle"
+          id="job_title"
+          v-model="formData.job_title"
           type="text"
           placeholder="e.g. Senior Software Engineer"
-          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           required
         />
-        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-          Your official job title or role
-        </p>
       </div>
 
-      <!-- Company -->
-      <div>
+      <div class="col-span-2">
         <label for="company" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Company *
         </label>
@@ -310,107 +306,113 @@ const totalExperience = computed(() => {
           id="company"
           v-model="formData.company"
           type="text"
-          placeholder="e.g. Technology Corp"
-          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          placeholder="e.g. Apple Inc."
+          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           required
         />
-        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-          Company or organization name
-        </p>
       </div>
 
-      <!-- Start Date -->
       <div>
-        <label for="startDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <label for="start_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Start Date *
         </label>
         <input
-          id="startDate"
-          v-model="formData.startDate"
+          id="start_date"
+          v-model="formData.start_date"
           type="date"
-          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           required
         />
-        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-          When did you start this position?
-        </p>
       </div>
 
-      <!-- End Date / Current Job -->
       <div>
-        <label for="endDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <label for="end_date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           End Date
         </label>
         <input
-          id="endDate"
-          v-model="formData.endDate"
+          id="end_date"
+          v-model="formData.end_date"
           type="date"
           :disabled="formData.isCurrentJob"
-          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-          :required="!formData.isCurrentJob"
+          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50"
         />
         <div class="mt-2">
-          <label class="flex items-center">
-            <input
-              v-model="formData.isCurrentJob"
-              type="checkbox"
-              class="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500 dark:bg-gray-700"
-            />
-            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">This is my current job</span>
+          <label class="flex items-center text-sm text-gray-600 dark:text-gray-400">
+            <input v-model="formData.isCurrentJob" type="checkbox" class="rounded text-blue-600 mr-2" />
+            Currently working here
           </label>
         </div>
       </div>
 
-      <!-- Description -->
       <div class="col-span-2">
         <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Job Description
+          Description
         </label>
         <textarea
           id="description"
           v-model="formData.description"
-          rows="6"
-          placeholder="Describe your responsibilities, achievements, and key projects. Use bullet points for better readability:&#10;&#10;• Led a team of 5 developers&#10;• Increased system performance by 40%&#10;• Implemented new CI/CD pipeline"
-          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 resize-none"
-        />
-        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-          Highlight your key responsibilities, achievements, and impact. Use bullet points for better readability.
-        </p>
+          rows="4"
+          placeholder="What did you do? Achievements, responsibilities..."
+          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+        ></textarea>
       </div>
+    </div>
 
-      <!-- Guidelines -->
-      <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 col-span-2">
-        <div class="flex items-start space-x-2">
-          <Icon name="mdi:lightbulb-outline" class="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-          <div class="text-sm text-blue-700 dark:text-blue-300">
-            <p class="font-medium mb-1">Writing Tips</p>
-            <ul class="text-xs space-y-1 list-disc list-inside">
-              <li>Use action verbs (led, developed, improved, created)</li>
-              <li>Include quantifiable achievements when possible</li>
-              <li>Focus on impact and results, not just duties</li>
-              <li>Tailor content to be relevant for your target roles</li>
-            </ul>
-          </div>
+    <template #footer>
+      <div class="flex justify-end space-x-3">
+        <button
+          @click="closeModal"
+          class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          @click="handleSave"
+          :disabled="!isFormValid"
+          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {{ isEditing ? 'Update' : 'Save' }}
+        </button>
+      </div>
+    </template>
+  </Modal>
+
+  <!-- Delete Confirmation Modal -->
+  <Modal
+    v-model="isDeleteModalOpen"
+    title="Delete Work Experience"
+    size="sm"
+    @close="closeDeleteModal"
+  >
+    <div class="space-y-4">
+      <div class="flex items-start space-x-4">
+        <Icon name="mdi:alert-circle" class="w-6 h-6 text-red-600 dark:text-red-400 flex-shrink-0" />
+        <div class="flex-grow">
+          <p class="text-gray-900 dark:text-gray-100 font-medium">Delete Work Experience?</p>
+          <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">
+            Are you sure you want to delete <span class="font-semibold">{{ experienceToDelete?.job_title }}</span> at <span class="font-semibold">{{ experienceToDelete?.company }}</span>? This action cannot be undone.
+          </p>
         </div>
       </div>
     </div>
 
     <template #footer>
-      <button
-        @click="closeModal"
-        class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
-      >
-        Cancel
-      </button>
-      
-      <button
-        @click="handleSave"
-        :disabled="!isFormValid"
-        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white rounded-lg transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        <Icon name="mdi:content-save" class="w-4 h-4 mr-2" />
-        {{ isEditing ? 'Update Experience' : 'Save Experience' }}
-      </button>
+      <div class="flex justify-end space-x-3">
+        <button
+          @click="closeDeleteModal"
+          :disabled="isDeleting"
+          class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Cancel
+        </button>
+        <button
+          @click="confirmDelete"
+          :disabled="isDeleting"
+          class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {{ isDeleting ? 'Deleting...' : 'Delete' }}
+        </button>
+      </div>
     </template>
   </Modal>
 </template>

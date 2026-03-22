@@ -1,9 +1,14 @@
 <script setup lang="ts">
 // filepath: frontend/app/components/profile/basicInfo/BasicInfoSection.vue
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import CollapsibleSection from '~/components/ui/CollapsibleSection.vue'
 import Modal from '~/components/ui/Modal.vue'
 import type { BasicInfoFormData, BasicInfoField } from './types'
+import { useProfileStore } from '~/stores/profileStore'
+import { profileService } from '~/services/profileService'
+
+const profileStore = useProfileStore()
+const activeProfile = profileStore.activeProfile
 
 // Basic Information Data
 const basicInfo = ref<BasicInfoFormData>({
@@ -13,10 +18,23 @@ const basicInfo = ref<BasicInfoFormData>({
   location: ''
 })
 
+// Sync basic info locally from the central store continuously
+watch(() => activeProfile.value, (newProfile) => {
+  if (newProfile) {
+    basicInfo.value = {
+      fullName: newProfile.name || '',
+      email: newProfile.email || '',
+      phoneNumber: newProfile.phone_number || '',
+      location: newProfile.location || ''
+    }
+  }
+}, { immediate: true })
+
 const isExpanded = ref(false)
 
 // Modal state
 const isModalOpen = ref(false)
+const isSaving = ref(false)
 
 // Form state
 const formData = ref<BasicInfoFormData>({
@@ -35,9 +53,25 @@ const openEditModal = () => {
   isModalOpen.value = true
 }
 
-const handleSave = () => {
-  basicInfo.value = { ...formData.value }
-  closeModal()
+const handleSave = async () => {
+  if (!activeProfile.value) return;
+  isSaving.value = true
+  
+  try {
+    await profileService.updateProfile(activeProfile.value.uuid, {
+      name: formData.value.fullName,
+      email: formData.value.email,
+      phone_number: formData.value.phoneNumber,
+      location: formData.value.location
+    })
+    
+    // The store automatically updates via profileService
+    closeModal()
+  } catch (error) {
+    console.error('Failed to update basic info', error)
+  } finally {
+    isSaving.value = false
+  }
 }
 
 const closeModal = () => {
@@ -72,7 +106,7 @@ const completionPercentage = computed(() => {
 })
 
 const hasRequiredFields = computed(() => {
-  return basicInfo.value.fullName && basicInfo.value.phoneNumber && basicInfo.value.location
+  return !!(basicInfo.value.fullName && basicInfo.value.phoneNumber && basicInfo.value.location)
 })
 </script>
 
@@ -281,11 +315,12 @@ const hasRequiredFields = computed(() => {
       
       <button
         @click="handleSave"
-        :disabled="!isFormValid"
+        :disabled="!isFormValid || isSaving"
         class="px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <Icon name="mdi:content-save" class="w-4 h-4 mr-2" />
-        Save Information
+        <Icon v-if="!isSaving" name="mdi:content-save" class="w-4 h-4 mr-2" />
+        <Icon v-else name="mdi:loading" class="w-4 h-4 mr-2 animate-spin" />
+        {{ isSaving ? 'Saving...' : 'Save Information' }}
       </button>
     </template>
   </Modal>

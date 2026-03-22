@@ -5,16 +5,7 @@ from datetime import datetime
 import uuid
 from shared.models.base import Base
 
-# Import all related models to ensure they're available for relationships
-from .professional_summaries.models import ProfessionalSummary
-from .work_experiences.models import WorkExperience
-from .education.models import Education
-from .projects.models import Project
-from .skills.models import Skill
-from .certificates.models import Certificate
-from .languages.models import Language
-from .profile_links.models import ProfileLink
-from .custom_sections.models import CustomSection
+# Relationships are defined using string references to avoid circular imports
 
 # Import from other features
 from features.resumes.models import GeneratedResume

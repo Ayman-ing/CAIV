@@ -7,7 +7,6 @@ Business logic for user profile management.
 from typing import Optional
 from features.profiles.repository import ProfileRepository
 from features.profiles.schemas import ProfileCreate, ProfileUpdate, ProfileResponse
-import json
 
 
 class ProfileService:
@@ -64,21 +63,12 @@ class ProfileService:
     
     def _convert_to_response(self, db_profile) -> ProfileResponse:
         """Convert database model to response schema"""
-        # Parse specializations JSON
-        specializations = None
-        if db_profile.specializations:
-            try:
-                specializations = json.loads(db_profile.specializations)
-            except json.JSONDecodeError:
-                specializations = []
-        
         return ProfileResponse(
+            name=db_profile.name,
+            email=db_profile.email,
+            phone_number=db_profile.phone_number,
+            location=db_profile.location,
             uuid=db_profile.uuid,
-            user_id=db_profile.user_id,
-            headline=db_profile.headline,
-            summary=db_profile.summary,
-            specializations=specializations,
-            career_objectives=db_profile.career_objectives,
             created_at=db_profile.created_at,
             updated_at=db_profile.updated_at
         )

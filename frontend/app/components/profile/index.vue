@@ -10,6 +10,7 @@ import BasicInfoSection from '~/components/profile/basicInfo/BasicInfoSection.vu
 import LinksSection from '~/components/profile/links/LinksSection.vue'
 import LanguageSection from '~/components/profile/language/LanguageSection.vue'
 import CertificationSection from '~/components/profile/certification/CertificationSection.vue'
+import CustomSection from '~/components/profile/custom/CustomSection.vue'
 
 // Profile state for resume generation
 const profileData = ref({
@@ -120,6 +121,7 @@ const navigateToLinkedIn = () => navigateTo('/profile/extract-linkedin')
         <ProjectSection />
         <CertificationSection />
         <LanguageSection />
+        <CustomSection />
       </div>
           </div>
 

@@ -1,15 +1,7 @@
 // filepath: frontend/app/components/profile/skills/types.ts
-// Skills TypeScript interfaces matching backend Skill model
+import type { Skill as BaseSkill } from '@/types/profile'
 
-export interface Skill {
-  id?: number
-  profileId?: number
-  category: string
-  name: string
-  proficiency: string
-  createdAt?: string
-  updatedAt?: string
-}
+export type Skill = BaseSkill
 
 export interface SkillFormData {
   category: string
@@ -17,37 +9,11 @@ export interface SkillFormData {
   proficiency: string
 }
 
-// Predefined skill categories and proficiency levels
-export interface SkillOptions {
-  categories: string[]
-  proficiencyLevels: { value: string; label: string; description?: string }[]
-}
-
 // Grouped skills for better display
 export interface SkillGroup {
   category: string
   skills: Skill[]
   count: number
-}
-
-export interface SkillValidation {
-  isValid: boolean
-  errors: Record<string, string>
-}
-
-export interface SkillState {
-  items: Skill[]
-  isLoading: boolean
-  isSaving: boolean
-  error: string | null
-}
-
-// For skill suggestions and auto-complete
-export interface SkillSuggestion {
-  name: string
-  category: string
-  popularity: number
-  isRecommended: boolean
 }
 
 // Common skill categories
@@ -65,8 +31,8 @@ export const SKILL_CATEGORIES = [
 
 // Common proficiency levels
 export const PROFICIENCY_LEVELS = [
-  { value: 'beginner', label: 'Beginner', description: 'Basic understanding' },
-  { value: 'intermediate', label: 'Intermediate', description: 'Some experience' },
-  { value: 'advanced', label: 'Advanced', description: 'Extensive experience' },
-  { value: 'expert', label: 'Expert', description: 'Deep expertise' }
+  { value: 'Beginner', label: 'Beginner', description: 'Basic understanding' },
+  { value: 'Intermediate', label: 'Intermediate', description: 'Some experience' },
+  { value: 'Advanced', label: 'Advanced', description: 'Extensive experience' },
+  { value: 'Expert', label: 'Expert', description: 'Deep expertise' }
 ] as const

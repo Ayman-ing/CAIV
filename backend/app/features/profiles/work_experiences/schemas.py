@@ -34,10 +34,7 @@ class WorkExperienceUpdate(BaseModel):
         return v
 
 class WorkExperienceResponse(WorkExperienceBase):
-    id: int
     uuid: uuid.UUID
-    profile_id: int = Field(..., description="Profile this work experience belongs to")
-    user_id: int = Field(..., description="User who owns this work experience")
     created_at: datetime
     updated_at: datetime
     

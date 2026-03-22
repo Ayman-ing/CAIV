@@ -15,8 +15,10 @@ class CustomSection(BaseEntity):
     # CustomSection specific fields
     profile_id = Column(Integer, ForeignKey('profiles.id'))
     title = Column(String)
-    type = Column(String)
-    content = Column(String)    # Relationships
+    content = Column(String)
+    order_index = Column(Integer, default=0)
+    
+    # Relationships
     profile = relationship("Profile", back_populates="custom_sections")
     # embeddings relationship is inherited from BaseEntity
     

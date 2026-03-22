@@ -1,66 +1,42 @@
-"""
-Custom Section Service
-
-Business logic for custom sections operations.
-"""
-
-from typing import List, Optional
-from features.profiles.custom_sections.repository import CustomSectionRepository
-from features.profiles.custom_sections.schemas import CustomSectionCreate, CustomSectionUpdate, CustomSectionResponse
-
+from sqlalchemy.orm import Session
+from typing import Optional, List
+from .repository import CustomSectionRepository
+from .schemas import CustomSectionCreate, CustomSectionUpdate, CustomSectionResponse
+from features.profiles.repository import ProfileRepository
 
 class CustomSectionService:
-    """Service layer for custom section operations"""
+    def __init__(self, db: Session):
+        self.repository = CustomSectionRepository(db)
+        self.profile_repository = ProfileRepository(db)
     
-    def __init__(self, repository: CustomSectionRepository):
-        self.repository = repository
-
-    def create_custom_section(self, user_id: int, section_data: CustomSectionCreate) -> CustomSectionResponse:
-        """Create a new custom section for a user"""
-        # Check for duplicate titles for the same user
-        existing_sections = self.repository.get_user_custom_sections(user_id)
-        if any(section.title.lower() == section_data.title.lower() for section in existing_sections):
-            raise ValueError(f"Custom section with title '{section_data.title}' already exists")
+    def create_custom_section(self, profile_uuid: str, section_data: CustomSectionCreate) -> CustomSectionResponse:
+        profile = self.profile_repository.get_by_uuid(profile_uuid)
+        if not profile:
+            raise ValueError("Profile not found")
         
-        db_section = self.repository.create(user_id, section_data)
-        return CustomSectionResponse.from_orm(db_section)
-
+        section = self.repository.create_with_profile_id(profile.id, section_data)
+        return CustomSectionResponse.model_validate(section)
+    
     def get_custom_section_by_uuid(self, section_uuid: str) -> Optional[CustomSectionResponse]:
-        """Get a custom section by UUID"""
-        db_section = self.repository.get_by_uuid(section_uuid)
-        return CustomSectionResponse.from_orm(db_section) if db_section else None
-
-    def get_user_custom_sections(self, user_id: int, skip: int = 0, limit: int = 100) -> List[CustomSectionResponse]:
-        """Get all custom sections for a user, ordered by order_index"""
-        db_sections = self.repository.get_user_custom_sections(user_id, skip, limit)
-        return [CustomSectionResponse.from_orm(section) for section in db_sections]
-
-    def update_custom_section(self, section_uuid: str, section_update: CustomSectionUpdate) -> Optional[CustomSectionResponse]:
-        """Update a custom section"""
-        db_section = self.repository.get_by_uuid(section_uuid)
-        if not db_section:
+        section = self.repository.get_by_uuid(section_uuid)
+        return CustomSectionResponse.model_validate(section) if section else None
+    
+    def get_sections_by_profile(self, profile_uuid: str, skip: int = 0, limit: int = 100) -> List[CustomSectionResponse]:
+        profile = self.profile_repository.get_by_uuid(profile_uuid)
+        if not profile:
+            return []
+        sections = self.repository.get_by_profile_id(profile.id, skip, limit)
+        return [CustomSectionResponse.model_validate(s) for s in sections]
+    
+    def update_custom_section_by_uuid(self, section_uuid: str, section_data: CustomSectionUpdate) -> Optional[CustomSectionResponse]:
+        section = self.repository.get_by_uuid(section_uuid)
+        if not section:
             return None
-        
-        # Check for duplicate titles if title is being updated
-        if section_update.title:
-            existing_sections = self.repository.get_user_custom_sections(db_section.user_id)
-            for section in existing_sections:
-                if section.id != db_section.id and section.title.lower() == section_update.title.lower():
-                    raise ValueError(f"Custom section with title '{section_update.title}' already exists")
-        
-        updated_section = self.repository.update(db_section, section_update)
-        if updated_section:
-            return CustomSectionResponse.from_orm(updated_section)
-        return None
-
-    def delete_custom_section(self, section_uuid: str) -> bool:
-        """Delete a custom section"""
-        db_section = self.repository.get_by_uuid(section_uuid)
-        if not db_section:
+        updated_section = self.repository.update(section, section_data)
+        return CustomSectionResponse.model_validate(updated_section)
+    
+    def delete_custom_section_by_uuid(self, section_uuid: str) -> bool:
+        section = self.repository.get_by_uuid(section_uuid)
+        if not section:
             return False
-        return self.repository.delete(db_section)
-
-    def check_custom_section_ownership(self, section_uuid: str, user_id: int) -> bool:
-        """Check if a custom section belongs to a specific user"""
-        db_section = self.repository.get_by_uuid(section_uuid)
-        return db_section is not None and db_section.user_id == user_id
+        return self.repository.delete(section)

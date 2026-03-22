@@ -16,10 +16,10 @@ class LanguageRepository:
     def __init__(self, db: Session):
         self.db = db
     
-    def create(self, user_id: int, language_data: LanguageCreate) -> Language:
-        """Create a new language record"""
+    def create_with_profile_id(self, profile_id: int, language_data: LanguageCreate) -> Language:
+        """Create a new language record for a profile"""
         db_language = Language(
-            user_id=user_id,
+            profile_id=profile_id,
             **language_data.model_dump()
         )
         self.db.add(db_language)
@@ -31,15 +31,23 @@ class LanguageRepository:
         """Get language by UUID"""
         return self.db.query(Language).filter(Language.uuid == language_uuid).first()
     
-    def get_user_languages(self, user_id: int, skip: int = 0, limit: int = 100) -> List[Language]:
-        """Get all languages for a user, ordered by proficiency level (highest first)"""
+    def get_by_profile_id(self, profile_id: int, skip: int = 0, limit: int = 100) -> List[Language]:
+        """Get all languages for a profile, ordered by proficiency level (highest first)"""
         return (
             self.db.query(Language)
-            .filter(Language.user_id == user_id)
-            .order_by(Language.proficiency_level.desc())
+            .filter(Language.profile_id == profile_id)
+            .order_by(Language.proficiency.desc()) # Note: assuming proficiency order logic
             .offset(skip)
             .limit(limit)
             .all()
+        )
+    
+    def get_by_profile_and_language(self, profile_id: int, language_name: str) -> Optional[Language]:
+        """Check if a language already exists for a profile"""
+        return (
+            self.db.query(Language)
+            .filter(Language.profile_id == profile_id, Language.language == language_name)
+            .first()
         )
     
     def update(self, db_language: Language, language_update: LanguageUpdate) -> Language:
@@ -58,11 +66,3 @@ class LanguageRepository:
         self.db.delete(db_language)
         self.db.commit()
         return True
-    
-    def get_by_language_name(self, user_id: int, language_name: str) -> Optional[Language]:
-        """Get a specific language by name for a user"""
-        return (
-            self.db.query(Language)
-            .filter(Language.user_id == user_id, Language.language == language_name)
-            .first()
-        )

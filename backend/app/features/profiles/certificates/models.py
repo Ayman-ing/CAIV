@@ -15,7 +15,7 @@ class Certificate(BaseEntity):
     # Certificate specific fields
     profile_id = Column(Integer, ForeignKey('profiles.id'))
     name = Column(String)
-    issuer = Column(String)
+    issuing_organization = Column(String)
     issue_date = Column(Date)
     expiration_date = Column(Date)
     credential_id = Column(String)
@@ -24,10 +24,6 @@ class Certificate(BaseEntity):
     # Relationships
     profile = relationship("Profile", back_populates="certificates")
     # embeddings relationship is inherited from BaseEntity via Entity table
-    
-    __mapper_args__ = {
-        'polymorphic_identity': 'certificate',
-    }
     
     __mapper_args__ = {
         'polymorphic_identity': 'certificate',

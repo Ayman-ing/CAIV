@@ -7,10 +7,9 @@ class ProjectRepository:
     def __init__(self, db: Session):
         self.db = db
     
-    def create_with_user_id(self, user_id: int, project_data: ProjectCreate) -> Project:
+    def create_with_profile_id(self, profile_id: int, project_data: ProjectCreate) -> Project:
         data_dict = project_data.model_dump()
-        data_dict.pop('user_uuid', None)
-        data_dict['user_id'] = user_id
+        data_dict['profile_id'] = profile_id
         
         project = Project(**data_dict)
         self.db.add(project)
@@ -21,11 +20,9 @@ class ProjectRepository:
     def get_by_uuid(self, project_uuid: str) -> Optional[Project]:
         return self.db.query(Project).filter(Project.uuid == project_uuid).first()
     
-    def get_by_user_uuid(self, user_uuid: str, skip: int = 0, limit: int = 100) -> List[Project]:
-        from features.users.models import User
+    def get_by_profile_id(self, profile_id: int, skip: int = 0, limit: int = 100) -> List[Project]:
         return (self.db.query(Project)
-                .join(User)
-                .filter(User.uuid == user_uuid)
+                .filter(Project.profile_id == profile_id)
                 .offset(skip)
                 .limit(limit)
                 .all())

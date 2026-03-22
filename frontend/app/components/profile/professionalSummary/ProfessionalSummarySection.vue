@@ -1,36 +1,57 @@
 <script setup lang="ts">
 // filepath: frontend/app/components/profile/professionalSummary/ProfessionalSummarySection.vue
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import CollapsibleSection from '~/components/ui/CollapsibleSection.vue'
 import Modal from '~/components/ui/Modal.vue'
+import { useProfileStore } from '~/stores/profileStore'
+import { profileSectionsService } from '~/services/profileSectionsService'
+import { useToast } from '~/composables/useToast'
+import type { ProfessionalSummary } from '~/types/profile'
 
-interface ProfessionalSummary {
-  id: string
-  title: string
-  summary: string
-  isDefault: boolean
-  createdAt: string
-}
+const profileStore = useProfileStore()
+const activeProfile = profileStore.activeProfile
+const { success, error } = useToast()
 
-// Professional Summary Data
 const professionalSummaries = ref<ProfessionalSummary[]>([])
 const isExpanded = ref(false)
 
-// Modal state
-const isModalOpen = ref(false)
-const isEditing = ref(false)
-const editingSummary = ref<ProfessionalSummary | null>(null)
-
-// Form state
-const formData = ref({
-  title: '',
-  summary: ''
+onMounted(async () => {
+  await fetchSummaries()
 })
 
+const isLoading = ref(false)
+const isModalOpen = ref(false)
+const isEditing = ref(false)
+const isSaving = ref(false)
+const editingSummary = ref<ProfessionalSummary | null>(null)
 const maxLength = 500
+
+// Deletion confirmation modal state
+const isDeleteModalOpen = ref(false)
+const summaryToDelete = ref<ProfessionalSummary | null>(null)
+const isDeleting = ref(false)
+const isSettingDefault = ref(false)
+
+const formData = ref({
+  title: '',
+  content: ''
+})
 
 const toggleSection = () => {
   isExpanded.value = !isExpanded.value
+}
+
+const fetchSummaries = async () => {
+  if (!activeProfile.value) return
+  isLoading.value = true
+  try {
+    const data = await profileSectionsService.fetchProfessionalSummaries(activeProfile.value.uuid)
+    professionalSummaries.value = data
+  } catch (error) {
+    console.error('Failed to fetch professional summaries:', error)
+  } finally {
+    isLoading.value = false
+  }
 }
 
 const openAddModal = () => {
@@ -38,7 +59,7 @@ const openAddModal = () => {
   editingSummary.value = null
   formData.value = {
     title: '',
-    summary: ''
+    content: ''
   }
   isModalOpen.value = true
 }
@@ -48,37 +69,45 @@ const openEditModal = (summary: ProfessionalSummary) => {
   editingSummary.value = summary
   formData.value = {
     title: summary.title,
-    summary: summary.summary
+    content: summary.content
   }
   isModalOpen.value = true
 }
 
-const handleSave = () => {
-  if (isEditing.value && editingSummary.value) {
-    // Update existing summary
-    const index = professionalSummaries.value.findIndex(s => s.id === editingSummary.value!.id)
-    if (index !== -1 && professionalSummaries.value[index]) {
-      professionalSummaries.value[index] = {
-        id: professionalSummaries.value[index].id,
-        title: formData.value.title.trim(),
-        summary: formData.value.summary.trim(),
-        isDefault: professionalSummaries.value[index].isDefault,
-        createdAt: professionalSummaries.value[index].createdAt
-      }
-    }
-  } else {
-    // Add new summary
-    const newSummary: ProfessionalSummary = {
-      id: Date.now().toString(),
-      title: formData.value.title.trim(),
-      summary: formData.value.summary.trim(),
-      isDefault: professionalSummaries.value.length === 0, // First summary is default
-      createdAt: new Date().toISOString()
-    }
-    professionalSummaries.value.push(newSummary)
-  }
+const handleSave = async () => {
+  if (!activeProfile.value) return
+  isSaving.value = true
   
-  closeModal()
+  try {
+    if (isEditing.value && editingSummary.value) {
+      await profileSectionsService.updateProfessionalSummary(
+        activeProfile.value.uuid,
+        editingSummary.value.uuid,
+        {
+          title: formData.value.title.trim(),
+          content: formData.value.content.trim()
+        }
+      )
+      success('Professional summary updated successfully!')
+    } else {
+      await profileSectionsService.createProfessionalSummary(
+        activeProfile.value.uuid,
+        {
+          title: formData.value.title.trim(),
+          content: formData.value.content.trim()
+        }
+      )
+      success('Professional summary added successfully!')
+    }
+    
+    await fetchSummaries()
+    closeModal()
+  } catch (err) {
+    console.error('Failed to save summary', err)
+    error(`Failed to save summary: ${err instanceof Error ? err.message : 'Unknown error'}`)
+  } finally {
+    isSaving.value = false
+  }
 }
 
 const closeModal = () => {
@@ -86,55 +115,76 @@ const closeModal = () => {
   editingSummary.value = null
   formData.value = {
     title: '',
-    summary: ''
+    content: ''
   }
 }
 
-const removeSummary = (id: string) => {
-  const summaryToRemove = professionalSummaries.value.find(s => s.id === id)
-  if (summaryToRemove?.isDefault && professionalSummaries.value.length > 1) {
-    // If removing default summary, make the first remaining one default
-    const remainingSummaries = professionalSummaries.value.filter(s => s.id !== id)
-    if (remainingSummaries.length > 0) {
-      if (remainingSummaries[0]) {
-        remainingSummaries[0].isDefault = true
-      }
-    }
+const openDeleteModal = (summary: ProfessionalSummary) => {
+  summaryToDelete.value = summary
+  isDeleteModalOpen.value = true
+}
+
+const closeDeleteModal = () => {
+  isDeleteModalOpen.value = false
+  summaryToDelete.value = null
+}
+
+const confirmDelete = async () => {
+  if (!activeProfile.value || !summaryToDelete.value) return
+  
+  isDeleting.value = true
+  try {
+    await profileSectionsService.deleteProfessionalSummary(
+      activeProfile.value.uuid,
+      summaryToDelete.value.uuid
+    )
+    // If we reach here without an error, the delete was successful
+    await fetchSummaries()
+    closeDeleteModal()
+    success('Professional summary deleted successfully!')
+  } catch (err) {
+    console.error('Failed to delete summary:', err)
+    error(`Failed to delete summary: ${err instanceof Error ? err.message : 'Unknown error'}`)
+  } finally {
+    isDeleting.value = false
   }
-  professionalSummaries.value = professionalSummaries.value.filter(s => s.id !== id)
 }
 
-const setAsDefault = (id: string) => {
-  professionalSummaries.value.forEach(summary => {
-    summary.isDefault = summary.id === id
-  })
-}
-
-const duplicateSummary = (summary: ProfessionalSummary) => {
-  const newSummary: ProfessionalSummary = {
-    id: Date.now().toString(),
-    title: `${summary.title} (Copy)`,
-    summary: summary.summary,
-    isDefault: false,
-    createdAt: new Date().toISOString()
+const setAsDefault = async (summary: ProfessionalSummary) => {
+  if (!activeProfile.value) return
+  
+  isSettingDefault.value = true
+  try {
+    await profileSectionsService.setDefaultProfessionalSummary(
+      activeProfile.value.uuid,
+      summary.uuid
+    )
+    await fetchSummaries()
+    success('Professional summary set as default!')
+  } catch (err) {
+    console.error('Failed to set default summary:', err)
+    error(`Failed to set default summary: ${err instanceof Error ? err.message : 'Unknown error'}`)
+  } finally {
+    isSettingDefault.value = false
   }
-  professionalSummaries.value.push(newSummary)
 }
 
-const characterCount = computed(() => formData.value.summary.length)
+
+
+const characterCount = computed(() => formData.value.content.length)
 const isOverLimit = computed(() => characterCount.value > maxLength)
 const isFormValid = computed(() => 
   formData.value.title.trim() !== '' && 
-  formData.value.summary.trim() !== '' && 
+  formData.value.content.trim() !== '' && 
   !isOverLimit.value
 )
 
 const wordCount = computed(() => {
-  return formData.value.summary.trim() ? formData.value.summary.trim().split(/\s+/).length : 0
+  return formData.value.content.trim() ? formData.value.content.trim().split(/\s+/).length : 0
 })
 
 const defaultSummary = computed(() => {
-  return professionalSummaries.value.find(s => s.isDefault)
+  return professionalSummaries.value[0] // For now first one is default
 })
 
 // Predefined summary templates for quick start
@@ -155,7 +205,7 @@ const summaryTemplates = [
 
 const useTemplate = (template: any) => {
   formData.value.title = template.title
-  formData.value.summary = template.summary
+  formData.value.content = template.summary
 }
 </script>
 
@@ -168,104 +218,95 @@ const useTemplate = (template: any) => {
     icon-bg-color="bg-green-100 dark:bg-green-900/30"
     button-color="bg-green-600 dark:bg-green-500 hover:bg-green-700 dark:hover:bg-green-600"
     :is-expanded="isExpanded"
-    :is-empty="professionalSummaries.length === 0"
+    :is-empty="!isLoading && professionalSummaries.length === 0"
     empty-message="No professional summaries added yet"
     add-button-text="Add Summary"
     @toggle="toggleSection"
     @add="openAddModal"
   >
+    <!-- Loading State -->
+    <div v-if="isLoading" class="flex justify-center p-8 text-green-600">
+      <Icon name="mdi:loading" class="w-8 h-8 animate-spin" />
+    </div>
+
     <!-- Display Mode -->
-    <div v-if="professionalSummaries.length > 0" class="space-y-4">
-      <!-- Default Summary Highlight -->
-      <div v-if="defaultSummary" class="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-        <div class="flex items-center justify-between mb-2">
+    <div v-else-if="professionalSummaries.length > 0" class="space-y-6">
+      <!-- Summary Stats -->
+      <div class="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+        <div class="flex items-center space-x-4">
           <div class="flex items-center space-x-2">
-            <Icon name="mdi:star" class="w-5 h-5 text-green-600 dark:text-green-400" />
-            <span class="text-sm font-medium text-green-700 dark:text-green-300">Default Summary</span>
-          </div>
-          <span class="text-xs text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/40 px-2 py-1 rounded-full">
-            {{ defaultSummary.title }}
-          </span>
-        </div>
-        <p class="text-green-900 dark:text-green-100 text-sm leading-relaxed">
-          {{ defaultSummary.summary }}
-        </p>
-      </div>
-
-      <!-- All Summaries List -->
-      <div class="space-y-3">
-        <div v-for="summary in professionalSummaries" :key="summary.id" class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 group hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-          <div class="flex items-start justify-between mb-3">
-            <div class="flex items-center space-x-2">
-              <Icon 
-                name="mdi:star" 
-                class="w-4 h-4"
-                :class="summary.isDefault ? 'text-green-500' : 'text-gray-300 dark:text-gray-600'"
-              />
-              <h4 class="font-medium text-gray-900 dark:text-gray-100">{{ summary.title }}</h4>
-              <span v-if="summary.isDefault" class="text-xs bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 px-2 py-1 rounded-full">
-                Default
-              </span>
-            </div>
-            
-            <!-- Action Buttons -->
-            <div class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button
-                v-if="!summary.isDefault"
-                @click="setAsDefault(summary.id)"
-                class="p-2 text-gray-500 hover:text-green-600 dark:hover:text-green-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
-                title="Set as default"
-              >
-                <Icon name="mdi:star-outline" class="w-4 h-4" />
-              </button>
-              
-              <button
-                @click="duplicateSummary(summary)"
-                class="p-2 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
-                title="Duplicate summary"
-              >
-                <Icon name="mdi:content-copy" class="w-4 h-4" />
-              </button>
-              
-              <button
-                @click="openEditModal(summary)"
-                class="p-2 text-gray-500 hover:text-green-600 dark:hover:text-green-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
-                title="Edit summary"
-              >
-                <Icon name="mdi:pencil" class="w-4 h-4" />
-              </button>
-              
-              <button
-                @click="removeSummary(summary.id)"
-                :disabled="professionalSummaries.length === 1"
-                class="p-2 text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Remove summary"
-              >
-                <Icon name="mdi:trash-can" class="w-4 h-4" />
-              </button>
+            <Icon name="mdi:text-box-multiple-outline" class="w-5 h-5 text-green-600 dark:text-green-400" />
+            <div>
+              <p class="text-sm font-medium text-green-700 dark:text-green-300">Professional Summaries</p>
+              <p class="text-xs text-green-600 dark:text-green-400">{{ professionalSummaries.length }} summary{{ professionalSummaries.length !== 1 ? 's' : '' }}</p>
             </div>
           </div>
-          
-          <p class="text-gray-700 dark:text-gray-300 text-sm leading-relaxed mb-2">
-            {{ summary.summary }}
-          </p>
-          
-          <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-            <span>{{ summary.summary.length }} characters • {{ summary.summary.split(/\s+/).length }} words</span>
-            <span>Created {{ new Date(summary.createdAt).toLocaleDateString() }}</span>
-          </div>
         </div>
-      </div>
-
-      <!-- Add Another Button -->
-      <div class="flex justify-center pt-3 border-t border-gray-200 dark:border-gray-700">
+        
         <button
           @click="openAddModal"
           class="px-4 py-2 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white rounded-lg transition-colors flex items-center"
         >
           <Icon name="mdi:plus" class="w-4 h-4 mr-2" />
-          Add Another Summary
+          Add Summary
         </button>
+      </div>
+
+      <!-- All Summaries List -->
+      <div class="space-y-4">
+        <div v-for="(summary, index) in professionalSummaries" :key="summary.uuid" class="relative p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md transition-shadow group">
+          <!-- Default Badge -->
+          <div v-if="summary.is_default" class="absolute top-4 right-4">
+            <span class="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 rounded-full flex items-center">
+              <Icon name="mdi:star" class="w-3 h-3 mr-1" />
+              Default
+            </span>
+          </div>
+
+          <div class="mb-4">
+            <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">{{ summary.title }}</h3>
+          </div>
+          
+          <div class="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 whitespace-pre-wrap text-sm leading-relaxed mb-4">
+            {{ summary.content }}
+          </div>
+          
+          <div class="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div class="text-xs text-gray-500 dark:text-gray-400">
+              {{ summary.content.length }} characters • {{ summary.content.split(/\s+/).length }} words
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="flex items-center space-x-2">
+              <button
+                @click="openEditModal(summary)"
+                class="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center"
+              >
+                <Icon name="mdi:pencil" class="w-4 h-4 mr-1" />
+                Edit
+              </button>
+
+              <button
+                v-if="!summary.is_default"
+                @click="setAsDefault(summary)"
+                :disabled="isSettingDefault"
+                class="px-3 py-1.5 text-sm bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400 rounded-lg hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Icon v-if="!isSettingDefault" name="mdi:star-outline" class="w-4 h-4 mr-1" />
+                <Icon v-else name="mdi:loading" class="w-4 h-4 mr-1 animate-spin" />
+                {{ isSettingDefault ? 'Setting...' : 'Set Default' }}
+              </button>
+              
+              <button
+                @click="openDeleteModal(summary)"
+                class="px-3 py-1.5 text-sm bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors flex items-center"
+              >
+                <Icon name="mdi:delete" class="w-4 h-4 mr-1" />
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </CollapsibleSection>
@@ -311,7 +352,7 @@ const useTemplate = (template: any) => {
           </label>
           <textarea
             id="summary"
-            v-model="formData.summary"
+            v-model="formData.content"
             rows="8"
             :maxlength="maxLength"
             placeholder="Write a compelling summary of your professional background, key skills, and career objectives..."
@@ -331,12 +372,12 @@ const useTemplate = (template: any) => {
         </div>
 
         <!-- Preview -->
-        <div v-if="formData.summary.trim()" class="space-y-2">
+        <div v-if="formData.content.trim()" class="space-y-2">
           <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Preview:</h4>
           <div class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
             <h5 class="font-medium text-gray-900 dark:text-gray-100 mb-2">{{ formData.title || 'Summary Title' }}</h5>
             <p class="text-gray-900 dark:text-gray-100 leading-relaxed text-sm whitespace-pre-wrap">
-              {{ formData.summary }}
+              {{ formData.content }}
             </p>
           </div>
         </div>
@@ -403,11 +444,54 @@ const useTemplate = (template: any) => {
       
       <button
         @click="handleSave"
-        :disabled="!isFormValid"
+        :disabled="!isFormValid || isSaving"
         class="px-4 py-2 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white rounded-lg transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <Icon name="mdi:content-save" class="w-4 h-4 mr-2" />
-        {{ isEditing ? 'Update Summary' : 'Add Summary' }}
+        <Icon v-if="!isSaving" name="mdi:content-save" class="w-4 h-4 mr-2" />
+        <Icon v-else name="mdi:loading" class="w-4 h-4 mr-2 animate-spin" />
+        {{ isSaving ? 'Saving...' : (isEditing ? 'Update Summary' : 'Add Summary') }}
+      </button>
+    </template>
+  </Modal>
+
+  <!-- Delete Confirmation Modal -->
+  <Modal
+    v-model="isDeleteModalOpen"
+    title="Delete Professional Summary"
+    size="sm"
+    @close="closeDeleteModal"
+  >
+    <div class="space-y-4">
+      <div class="flex items-start space-x-4">
+        <div class="flex-shrink-0">
+          <Icon name="mdi:alert-circle" class="w-6 h-6 text-red-600 dark:text-red-400" />
+        </div>
+        <div class="flex-grow">
+          <p class="text-gray-900 dark:text-gray-100 font-medium">Delete Summary?</p>
+          <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">
+            Are you sure you want to delete <span class="font-semibold">{{ summaryToDelete?.title }}</span>? This action cannot be undone.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <template #footer>
+      <button
+        @click="closeDeleteModal"
+        :disabled="isDeleting"
+        class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors disabled:opacity-50"
+      >
+        Cancel
+      </button>
+      
+      <button
+        @click="confirmDelete"
+        :disabled="isDeleting"
+        class="px-4 py-2 bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-white rounded-lg transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <Icon v-if="!isDeleting" name="mdi:delete" class="w-4 h-4 mr-2" />
+        <Icon v-else name="mdi:loading" class="w-4 h-4 mr-2 animate-spin" />
+        {{ isDeleting ? 'Deleting...' : 'Delete' }}
       </button>
     </template>
   </Modal>

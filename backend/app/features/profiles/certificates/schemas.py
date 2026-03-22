@@ -5,7 +5,7 @@ import uuid
 
 class CertificateBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=200, description="Certificate name")
-    issuer: str = Field(..., min_length=1, max_length=200, description="Issuing organization")
+    issuing_organization: str = Field(..., min_length=1, max_length=200, description="Issuing organization")
     issue_date: date = Field(..., description="Date certificate was issued")
     expiration_date: Optional[date] = Field(None, description="Certificate expiration date (None if no expiration)")
     credential_id: Optional[str] = Field(None, max_length=100, description="Credential ID or license number")
@@ -23,7 +23,7 @@ class CertificateCreate(CertificateBase):
 
 class CertificateUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=200)
-    issuer: Optional[str] = Field(None, min_length=1, max_length=200)
+    issuing_organization: Optional[str] = Field(None, min_length=1, max_length=200)
     issue_date: Optional[date] = None
     expiration_date: Optional[date] = None
     credential_id: Optional[str] = Field(None, max_length=100)
@@ -37,8 +37,6 @@ class CertificateUpdate(BaseModel):
 
 class CertificateResponse(CertificateBase):
     uuid: uuid.UUID
-    profile_id: int = Field(..., description="Profile this certificate belongs to")
-    user_id: int = Field(..., description="User who owns this certificate")
     created_at: datetime
     updated_at: datetime
     

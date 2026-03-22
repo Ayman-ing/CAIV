@@ -4,11 +4,10 @@ Profile Repository
 Handles all database operations for user profiles.
 """
 
-from typing import List, Optional
+from typing import Optional
 from sqlalchemy.orm import Session
 from .models import Profile
 from .schemas import ProfileCreate, ProfileUpdate
-import json
 
 
 class ProfileRepository:
@@ -19,15 +18,12 @@ class ProfileRepository:
     
     def create(self, user_id: int, profile_data: ProfileCreate) -> Profile:
         """Create a new profile"""
-        # Convert list to JSON string for specializations
-        specializations_json = json.dumps(profile_data.specializations) if profile_data.specializations else None
-        
         db_profile = Profile(
             user_id=user_id,
-            headline=profile_data.headline,
-            summary=profile_data.summary,
-            specializations=specializations_json,
-            career_objectives=profile_data.career_objectives
+            name=profile_data.name,
+            email=profile_data.email,
+            phone_number=profile_data.phone_number,
+            location=profile_data.location
         )
         self.db.add(db_profile)
         self.db.commit()
@@ -45,11 +41,6 @@ class ProfileRepository:
     def update(self, db_profile: Profile, profile_update: ProfileUpdate) -> Profile:
         """Update an existing profile"""
         update_data = profile_update.model_dump(exclude_unset=True)
-        
-        # Handle specializations conversion
-        if 'specializations' in update_data:
-            if update_data['specializations'] is not None:
-                update_data['specializations'] = json.dumps(update_data['specializations'])
         
         for field, value in update_data.items():
             setattr(db_profile, field, value)

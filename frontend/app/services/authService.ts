@@ -2,6 +2,7 @@
 import type { User, LoginRequest, RegisterRequest, ChangePasswordRequest, AuthError as ApiError } from '~/components/auth/types'
 import { authApi } from '~/api/auth'
 import { useUserStore } from '~/stores/userStore'
+import { profileService } from '~/services/profileService'
 
 export const authService = {
   async login(credentials: LoginRequest): Promise<void> {
@@ -22,7 +23,8 @@ export const authService = {
       
       // Now set the complete user state
       userStore.login(userData, response.access_token)
-            await navigateTo('/dashboard')
+      await profileService.fetchUserProfiles()
+      await navigateTo('/dashboard')
     } catch (error) {
       userStore.logout()
       throw error as ApiError
@@ -48,6 +50,7 @@ export const authService = {
       const userDataResponse = await authApi.getCurrentUser()
       
       userStore.login(userDataResponse, response.access_token)
+      await profileService.fetchUserProfiles()
       await navigateTo('/dashboard')
     } catch (error) {
       userStore.logout()

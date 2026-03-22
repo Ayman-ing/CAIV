@@ -7,10 +7,9 @@ class SkillRepository:
     def __init__(self, db: Session):
         self.db = db
     
-    def create_with_user_id(self, user_id: int, skill_data: SkillCreate) -> Skill:
+    def create_with_profile_id(self, profile_id: int, skill_data: SkillCreate) -> Skill:
         data_dict = skill_data.model_dump()
-        data_dict.pop('user_uuid', None)
-        data_dict['user_id'] = user_id
+        data_dict['profile_id'] = profile_id
         
         skill = Skill(**data_dict)
         self.db.add(skill)
@@ -21,11 +20,9 @@ class SkillRepository:
     def get_by_uuid(self, skill_uuid: str) -> Optional[Skill]:
         return self.db.query(Skill).filter(Skill.uuid == skill_uuid).first()
     
-    def get_by_user_uuid(self, user_uuid: str, skip: int = 0, limit: int = 100) -> List[Skill]:
-        from features.users.models import User
+    def get_by_profile_id(self, profile_id: int, skip: int = 0, limit: int = 100) -> List[Skill]:
         return (self.db.query(Skill)
-                .join(User)
-                .filter(User.uuid == user_uuid)
+                .filter(Skill.profile_id == profile_id)
                 .offset(skip)
                 .limit(limit)
                 .all())

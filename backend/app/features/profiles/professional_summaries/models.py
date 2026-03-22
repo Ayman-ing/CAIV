@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -13,11 +13,15 @@ class ProfessionalSummary(BaseEntity):
     id = Column(Integer, ForeignKey('entities.id'), primary_key=True)
     
     # ProfessionalSummary specific fields
-    profile_id = Column(Integer, ForeignKey('profiles.id'))
-    summary_text = Column(String)    # Relationships
+    profile_id = Column(Integer, ForeignKey('profiles.id'), nullable=False)
+    title = Column(String, nullable=True)
+    content = Column(String, nullable=True)
+    is_default = Column(Boolean, default=False, nullable=False)
+    
+    # Relationships
     profile = relationship("Profile", back_populates="professional_summaries")
     # embeddings relationship is inherited from BaseEntity
     
     __mapper_args__ = {
-        'polymorphic_identity': 'professional_summarie',
+        'polymorphic_identity': 'professional_summary',
     }

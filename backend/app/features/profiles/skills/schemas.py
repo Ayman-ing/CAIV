@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional, Literal
 import uuid
@@ -24,8 +24,6 @@ class SkillUpdate(BaseModel):
 
 class SkillResponse(SkillBase):
     uuid: uuid.UUID
-    profile_id: int = Field(..., description="Profile this skill belongs to")
-    user_id: int = Field(..., description="User who owns this skill")
     created_at: datetime
     updated_at: datetime
     
