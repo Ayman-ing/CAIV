@@ -11,6 +11,10 @@ class ProjectRepository:
         data_dict = project_data.model_dump()
         data_dict['profile_id'] = profile_id
         
+        # Convert HttpUrl to string for database storage
+        if data_dict.get('url'):
+            data_dict['url'] = str(data_dict['url'])
+        
         project = Project(**data_dict)
         self.db.add(project)
         self.db.commit()
