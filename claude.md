@@ -98,7 +98,12 @@ CAIV is a full-stack AI-powered resume builder application with FastAPI backend 
 - ✅ Login/Register components refactored and simplified
 - ✅ Middleware and routing protection working
 - ✅ **Dashboard Architecture**: Complete with modular component structure
-- 🔄 **Next**: API integration and AI resume generation backend
+- ✅ **Resume Import Pipeline**: Complete with Groq function calling optimization
+  - PDF extraction with Docling
+  - LLM parsing with schema enforcement
+  - All 8 profile sections populated
+  - Custom sections for edge cases
+- 🔄 **Next**: Resume generation & matching algorithms
 
 ### Immediate Next Steps
 1. **Dashboard Architecture**: Plan component separation
@@ -195,6 +200,20 @@ Step 1: Profile Setup → Step 2: Job Input → AI Processing → Resume Generat
 - **Suggest improvements** aligned with established patterns
 - **Focus on maintainability** and code clarity
 
----
+## Recent Implementations
 
-*Last Updated: August 30, 2025*
+### Resume Import Pipeline (Spring 2025)
+**Files:**
+- `RESUME_IMPORT_COMPLETE.md` - Complete overview and examples
+- `backend/app/features/resume_import/PIPELINE.md` - User guide
+- `backend/app/features/resume_import/FUNCTION_CALLING_UPGRADE.md` - Technical details
+- `backend/app/features/llm/FUNCTION_CALLING.md` - Function calling deep dive
+- `backend/app/features/llm/ARCHITECTURE_FLOW.md` - Visual diagrams
+
+**Key Features:**
+- PDF extraction with Docling for advanced document parsing
+- LLM integration using Groq's function calling for 100% schema compliance
+- All 8 profile sections automatically populated
+- Custom sections catch-all for non-standard data
+- Fully async architecture
+- Production-ready with fallback handling

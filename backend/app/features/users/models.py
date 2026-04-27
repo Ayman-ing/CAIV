@@ -35,6 +35,7 @@ class User(Base):
     # Relationships - 1-to-1 with Profile
     profile = relationship("Profile", back_populates="user", uselist=False)
     job_descriptions = relationship("JobDescription", back_populates="user")
+    uploaded_resumes = relationship("UploadedResume", back_populates="user")
     
     @property
     def is_admin(self) -> bool:

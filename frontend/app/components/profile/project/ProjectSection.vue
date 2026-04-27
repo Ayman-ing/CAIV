@@ -468,4 +468,43 @@ const displayProjects = computed((): ProjectDisplay[] => {
       </div>
     </template>
   </Modal>
+
+  <!-- Delete Confirmation Modal -->
+  <Modal
+    v-model="isDeleteModalOpen"
+    title="Delete Project"
+    size="sm"
+    @close="closeDeleteModal"
+  >
+    <div class="space-y-4">
+      <div class="flex items-start space-x-4">
+        <Icon name="mdi:alert-circle" class="w-6 h-6 text-red-600 dark:text-red-400 flex-shrink-0" />
+        <div class="flex-grow">
+          <p class="text-gray-900 dark:text-gray-100 font-medium">Delete Project?</p>
+          <p class="text-gray-600 dark:text-gray-400 text-sm mt-1">
+            Are you sure you want to delete <span class="font-semibold">{{ projectToDelete?.name }}</span>? This action cannot be undone.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <template #footer>
+      <div class="flex justify-end space-x-3">
+        <button
+          @click="closeDeleteModal"
+          :disabled="isDeleting"
+          class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Cancel
+        </button>
+        <button
+          @click="confirmDelete"
+          :disabled="isDeleting"
+          class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {{ isDeleting ? 'Deleting...' : 'Delete' }}
+        </button>
+      </div>
+    </template>
+  </Modal>
 </template>

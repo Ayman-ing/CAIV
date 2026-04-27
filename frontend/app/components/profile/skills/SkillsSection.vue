@@ -123,11 +123,19 @@ const closeDeleteModal = () => {
 }
 
 const confirmDelete = async () => {
-  if (!activeProfile.value?.uuid || !skillToDelete.value) return
+  if (!activeProfile.value?.uuid || !skillToDelete.value) {
+    console.error('Delete aborted: profile or skill missing', { 
+      profileUuid: activeProfile.value?.uuid, 
+      skill: skillToDelete.value 
+    })
+    return
+  }
   
   isDeleting.value = true
   try {
-    await profileSectionsService.deleteSkill(activeProfile.value.uuid, skillToDelete.value.uuid)
+    console.log(`Deleting skill ${skillToDelete.value.uuid} for profile ${activeProfile.value.uuid}`)
+    const result = await profileSectionsService.deleteSkill(activeProfile.value.uuid, skillToDelete.value.uuid)
+    console.log('Delete result:', result)
     await fetchSkills()
     closeDeleteModal()
     success('Skill deleted successfully!')
@@ -264,7 +272,7 @@ const getProficiencyLabel = (proficiency: string | null) => {
               </div>
               
               <!-- Actions -->
-              <div class="flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div class="flex items-center justify-end space-x-1 group-hover:opacity-100 transition-opacity">
                 <button
                   @click="openEditModal(skill)"
                   class="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"

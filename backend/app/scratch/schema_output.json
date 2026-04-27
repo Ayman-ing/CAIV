@@ -1,0 +1,535 @@
+{
+  "type": "function",
+  "function": {
+    "name": "resumedatalenient",
+    "description": "Extract data into ResumeDataLenient format",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "contact_info": {
+          "anyOf": [
+            {
+              "description": "Contact information from CV",
+              "properties": {
+                "name": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Full name",
+                  "title": "Name",
+                  "default": null
+                },
+                "email": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Email address",
+                  "title": "Email",
+                  "default": null
+                },
+                "phone": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Phone number",
+                  "title": "Phone",
+                  "default": null
+                },
+                "location": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "City and state",
+                  "title": "Location",
+                  "default": null
+                }
+              },
+              "title": "ContactInfo",
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Contact information"
+        },
+        "professional_summaries": {
+          "items": {
+            "description": "Lenient summary schema for extraction",
+            "properties": {
+              "title": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Summary title",
+                "title": "Title",
+                "default": "Professional Summary"
+              },
+              "content": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Summary content",
+                "title": "Content",
+                "default": null
+              }
+            },
+            "title": "SummaryLenient",
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "Professional summaries",
+          "title": "Professional Summaries",
+          "default": null
+        },
+        "education": {
+          "items": {
+            "description": "Lenient education schema for extraction",
+            "properties": {
+              "institution": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Educational institution name",
+                "title": "Institution",
+                "default": null
+              },
+              "degree": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Degree or certification name",
+                "title": "Degree",
+                "default": null
+              },
+              "degree_type": {
+                "enum": [
+                  "High School Diploma",
+                  "Associate",
+                  "Bachelor",
+                  "Master",
+                  "PhD",
+                  "Professional",
+                  "Certificate",
+                  "Other"
+                ],
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Type of degree",
+                "title": "Degree Type",
+                "default": null
+              },
+              "field_of_study": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Field of study or major",
+                "title": "Field Of Study",
+                "default": null
+              },
+              "start_date": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Education start date (YYYY-MM-DD or YYYY)",
+                "title": "Start Date",
+                "default": null
+              },
+              "end_date": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Education end date (YYYY-MM-DD or YYYY)",
+                "title": "End Date",
+                "default": null
+              },
+              "gpa": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "description": "GPA or grade",
+                "title": "Gpa",
+                "default": null
+              },
+              "description": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Additional description",
+                "title": "Description",
+                "default": null
+              }
+            },
+            "title": "EducationLenient",
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "Education history",
+          "title": "Education",
+          "default": null
+        },
+        "work_experiences": {
+          "items": {
+            "description": "Lenient work experience schema for extraction",
+            "properties": {
+              "job_title": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Job title",
+                "title": "Job Title",
+                "default": null
+              },
+              "company": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Company name",
+                "title": "Company",
+                "default": null
+              },
+              "start_date": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Employment start date (YYYY-MM-DD or YYYY)",
+                "title": "Start Date",
+                "default": null
+              },
+              "end_date": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Employment end date (YYYY-MM-DD or YYYY)",
+                "title": "End Date",
+                "default": null
+              },
+              "description": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Job description",
+                "title": "Description",
+                "default": null
+              }
+            },
+            "title": "WorkExperienceLenient",
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "Work experience",
+          "title": "Work Experiences",
+          "default": null
+        },
+        "skills": {
+          "items": {
+            "description": "Lenient skill schema for extraction",
+            "properties": {
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Skill name",
+                "title": "Name",
+                "default": null
+              },
+              "category": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Skill category",
+                "title": "Category",
+                "default": null
+              },
+              "proficiency": {
+                "enum": [
+                  "Beginner",
+                  "Intermediate",
+                  "Advanced",
+                  "Expert"
+                ],
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Proficiency level",
+                "title": "Proficiency",
+                "default": null
+              },
+              "years_experience": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "description": "Years of experience",
+                "title": "Years Experience",
+                "default": null
+              }
+            },
+            "title": "SkillLenient",
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "Skills and competencies",
+          "title": "Skills",
+          "default": null
+        },
+        "projects": {
+          "items": {
+            "description": "Lenient project schema for extraction",
+            "properties": {
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Project name",
+                "title": "Name",
+                "default": null
+              },
+              "description": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Project description",
+                "title": "Description",
+                "default": null
+              },
+              "start_date": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Project start date",
+                "title": "Start Date",
+                "default": null
+              },
+              "end_date": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Project end date",
+                "title": "End Date",
+                "default": null
+              },
+              "url": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Project URL",
+                "title": "Url",
+                "default": null
+              },
+              "technologies": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Technologies used",
+                "title": "Technologies",
+                "default": null
+              }
+            },
+            "title": "ProjectLenient",
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "Projects and portfolio items",
+          "title": "Projects",
+          "default": null
+        },
+        "certificates": {
+          "items": {
+            "description": "Lenient certificate schema for extraction",
+            "properties": {
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Certificate name",
+                "title": "Name",
+                "default": null
+              },
+              "issuing_organization": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Issuing organization",
+                "title": "Issuing Organization",
+                "default": null
+              },
+              "issue_date": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Issue date",
+                "title": "Issue Date",
+                "default": null
+              },
+              "expiration_date": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Expiration date",
+                "title": "Expiration Date",
+                "default": null
+              },
+              "credential_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Credential ID",
+                "title": "Credential Id",
+                "default": null
+              },
+              "credential_url": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Credential URL",
+                "title": "Credential Url",
+                "default": null
+              }
+            },
+            "title": "CertificateLenient",
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "Certifications and licenses",
+          "title": "Certificates",
+          "default": null
+        },
+        "languages": {
+          "items": {
+            "description": "Lenient language schema for extraction",
+            "properties": {
+              "language": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Language name",
+                "title": "Language",
+                "default": null
+              },
+              "proficiency": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "Native",
+                      "Fluent",
+                      "Conversational",
+                      "Intermediate",
+                      "Basic"
+                    ],
+                    "title": "ProficiencyLevel",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "Proficiency level"
+              }
+            },
+            "title": "LanguageLenient",
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "Languages spoken",
+          "title": "Languages",
+          "default": null
+        },
+        "custom_sections": {
+          "items": {
+            "description": "Lenient custom section schema for extraction",
+            "properties": {
+              "title": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Section title",
+                "title": "Title",
+                "default": null
+              },
+              "content": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Section content",
+                "title": "Content",
+                "default": null
+              }
+            },
+            "title": "CustomSectionLenient",
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "Custom sections",
+          "title": "Custom Sections",
+          "default": null
+        }
+      },
+      "required": []
+    }
+  }
+}

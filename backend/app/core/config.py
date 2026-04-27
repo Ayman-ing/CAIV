@@ -34,6 +34,9 @@ class Settings(BaseSettings):
         ], env="ALLOWED_ORIGINS", description="CORS allowed origins"
     )
     
+    # LLM / AI
+    GROQ_API_KEY: str = Field(env="GROQ_API_KEY", description="Groq API key for LLM calls")
+
     # Logging
     LOG_LEVEL: str = Field(default="INFO", env="LOG_LEVEL")
     LOG_FORMAT: str = Field(default="standard", env="LOG_FORMAT")  # "standard" or "json"

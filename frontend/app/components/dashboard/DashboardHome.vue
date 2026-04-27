@@ -7,8 +7,8 @@ const { user } = useUserStore()
 
 // Navigation methods
 const navigateToSections = () => navigateTo('/profile/sections')
-const navigateToExtractResume = () => navigateTo('/profile/extract-resume')  
-const navigateToLinkedIn = () => navigateTo('/profile/extract-linkedin')
+const navigateToExtractResume = () => navigateTo('/extract-resume')  
+const navigateToLinkedIn = () => navigateTo('/extract-linkedin')
 </script>
 
 <template>

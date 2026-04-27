@@ -35,3 +35,4 @@ class Profile(Base):
     professional_summaries = relationship("ProfessionalSummary", back_populates="profile")
     profile_links = relationship("ProfileLink", back_populates="profile")
     custom_sections = relationship("CustomSection", back_populates="profile")
+    uploaded_resumes = relationship("UploadedResume", back_populates="profile")

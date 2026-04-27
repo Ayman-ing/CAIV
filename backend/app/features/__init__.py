@@ -13,6 +13,7 @@ from .profiles.custom_sections import custom_section_router
 from .profiles.profile_links import profile_link_router
 from .profiles.professional_summaries.router import router as professional_summaries_router
 from .job_descriptions import job_description_router
+from .resume_import import resume_import_router
 
 
 # List of all feature routers
@@ -31,6 +32,7 @@ feature_routers = [
     profile_link_router,
     professional_summaries_router,
     job_description_router,
+    resume_import_router,
 ]
 
 __all__ = ["feature_routers"]
