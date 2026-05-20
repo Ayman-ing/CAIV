@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // filepath: frontend/app/components/profile/professionalSummary/ProfessionalSummarySection.vue
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import CollapsibleSection from '~/components/ui/CollapsibleSection.vue'
 import Modal from '~/components/ui/Modal.vue'
 import { useProfileStore } from '~/stores/profileStore'
@@ -17,6 +17,15 @@ const isExpanded = ref(false)
 
 onMounted(async () => {
   await fetchSummaries()
+})
+
+// Re-fetch when active profile changes (e.g. login/logout)
+watch(() => activeProfile.value?.uuid, async (newUuid) => {
+  if (newUuid) {
+    await fetchSummaries()
+  } else {
+    professionalSummaries.value = []
+  }
 })
 
 const isLoading = ref(false)

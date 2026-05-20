@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // filepath: frontend/app/components/profile/skills/SkillsSection.vue
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import CollapsibleSection from '~/components/ui/CollapsibleSection.vue'
 import Modal from '~/components/ui/Modal.vue'
 import { useToast } from '~/composables/useToast'
@@ -37,6 +37,15 @@ const formData = ref<SkillFormData>({
 
 onMounted(async () => {
   await fetchSkills()
+})
+
+// Re-fetch when active profile changes (e.g. login/logout)
+watch(() => activeProfile.value?.uuid, async (newUuid) => {
+  if (newUuid) {
+    await fetchSkills()
+  } else {
+    skills.value = []
+  }
 })
 
 const fetchSkills = async () => {

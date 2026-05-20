@@ -5,7 +5,7 @@ import uuid
 
 class ProjectBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=200, description="Project name")
-    description: Optional[str] = Field(None, max_length=2000, description="Project description")
+    description: Optional[str] = Field(None, max_length=10000, description="Project description")
     start_date: date = Field(..., description="Project start date")
     end_date: Optional[date] = Field(None, description="Project end date (None if ongoing)")
     url: Optional[HttpUrl] = Field(None, description="Project URL or repository link")
@@ -23,7 +23,7 @@ class ProjectCreate(ProjectBase):
 
 class ProjectUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=200)
-    description: Optional[str] = Field(None, max_length=2000)
+    description: Optional[str] = Field(None, max_length=10000)
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     url: Optional[HttpUrl] = None

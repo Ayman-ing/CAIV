@@ -32,7 +32,8 @@ def setup_logging(level: str = "INFO", format_type: str = "standard") -> None:
         handlers=[
             logging.StreamHandler(sys.stdout),
             logging.FileHandler(log_file)
-        ]
+        ],
+        force=True
     )
     
     # Suppress some verbose loggers

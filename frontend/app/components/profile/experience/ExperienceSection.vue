@@ -41,6 +41,15 @@ onMounted(async () => {
   await fetchExperience()
 })
 
+// Re-fetch when active profile changes (e.g. login/logout)
+watch(() => activeProfile.value?.uuid, async (newUuid) => {
+  if (newUuid) {
+    await fetchExperience()
+  } else {
+    experienceList.value = []
+  }
+})
+
 const fetchExperience = async () => {
   if (!activeProfile.value?.uuid) return
   isLoading.value = true

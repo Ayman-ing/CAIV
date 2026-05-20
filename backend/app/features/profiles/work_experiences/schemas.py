@@ -8,7 +8,7 @@ class WorkExperienceBase(BaseModel):
     company: str = Field(..., min_length=1, max_length=200, description="Company name")
     start_date: date = Field(..., description="Employment start date")
     end_date: Optional[date] = Field(None, description="Employment end date (None if current)")
-    description: Optional[str] = Field(None, max_length=2000, description="Job description")
+    description: Optional[str] = Field(None, max_length=10000, description="Job description")
     
     @validator('end_date')
     def validate_end_date(cls, v, values):
@@ -25,7 +25,7 @@ class WorkExperienceUpdate(BaseModel):
     company: Optional[str] = Field(None, min_length=1, max_length=200)
     start_date: Optional[date] = None
     end_date: Optional[date] = None
-    description: Optional[str] = Field(None, max_length=2000)
+    description: Optional[str] = Field(None, max_length=10000)
     
     @validator('end_date')
     def validate_end_date(cls, v, values):

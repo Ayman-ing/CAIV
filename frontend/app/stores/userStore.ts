@@ -1,5 +1,6 @@
 // User Store - Simple state management
 import type { User } from '~/components/auth/types'
+import { useProfileStore } from './profileStore'
 
 // Simple reactive state
 const state = reactive({
@@ -76,6 +77,10 @@ export const useUserStore = () => {
     logout() {
       state.user = null
       removeToken()
+      
+      // Clear profile data on logout to prevent state leakage
+      const profileStore = useProfileStore()
+      profileStore.clearStore()
     },
     
     setUser(user: User | null) {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // filepath: frontend/app/components/profile/education/EducationSection.vue
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import CollapsibleSection from '~/components/ui/CollapsibleSection.vue'
 import Modal from '~/components/ui/Modal.vue'
 import { useToast } from '~/composables/useToast'
@@ -49,6 +49,15 @@ const degreeTypes = [
 
 onMounted(async () => {
   await fetchEducation()
+})
+
+// Re-fetch when active profile changes (e.g. login/logout)
+watch(() => activeProfile.value?.uuid, async (newUuid) => {
+  if (newUuid) {
+    await fetchEducation()
+  } else {
+    educationList.value = []
+  }
 })
 
 const fetchEducation = async () => {

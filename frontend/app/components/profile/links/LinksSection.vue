@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // filepath: frontend/app/components/profile/links/LinksSection.vue
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import CollapsibleSection from '~/components/ui/CollapsibleSection.vue'
 import Modal from '~/components/ui/Modal.vue'
 import type { ProfileLink, LinkFormData, LinkDisplay } from './types'
@@ -44,6 +44,15 @@ const formData = ref<LinkFormData>({
 
 onMounted(async () => {
   await fetchLinks()
+})
+
+// Re-fetch when active profile changes (e.g. login/logout)
+watch(() => activeProfile.value?.uuid, async (newUuid) => {
+  if (newUuid) {
+    await fetchLinks()
+  } else {
+    links.value = []
+  }
 })
 
 const fetchLinks = async () => {

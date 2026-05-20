@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // filepath: frontend/app/components/profile/project/ProjectSection.vue
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import CollapsibleSection from '~/components/ui/CollapsibleSection.vue'
 import Modal from '~/components/ui/Modal.vue'
 import { useToast } from '~/composables/useToast'
@@ -51,6 +51,15 @@ const formData = ref<ProjectFormData>({
 
 onMounted(async () => {
   await fetchProjects()
+})
+
+// Re-fetch when active profile changes (e.g. login/logout)
+watch(() => activeProfile.value?.uuid, async (newUuid) => {
+  if (newUuid) {
+    await fetchProjects()
+  } else {
+    projects.value = []
+  }
 })
 
 const fetchProjects = async () => {

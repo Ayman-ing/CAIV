@@ -44,6 +44,11 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str = Field(
         env="GROQ_API_KEY", description="Groq API key for LLM calls"
     )
+    GROQ_MODEL: str = Field(
+        default="llama-3.3-70b-versatile",
+        env="GROQ_MODEL",
+        description="Groq model for LLM calls",
+    )
     QDRANT_URL: str = Field(
         env="QDRANT_URL", description="Qdrant URL for vector database"
     )

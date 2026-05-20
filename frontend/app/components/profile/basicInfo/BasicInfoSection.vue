@@ -27,6 +27,14 @@ watch(() => activeProfile.value, (newProfile) => {
       phoneNumber: newProfile.phone_number || '',
       location: newProfile.location || ''
     }
+  } else {
+    // Clear data if no profile is active
+    basicInfo.value = {
+      fullName: '',
+      email: '',
+      phoneNumber: '',
+      location: ''
+    }
   }
 }, { immediate: true })
 

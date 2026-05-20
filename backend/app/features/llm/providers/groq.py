@@ -60,11 +60,11 @@ def _simplify_schema_for_groq(schema: Dict[str, Any]) -> Dict[str, Any]:
         # If one of the variants is null, we want to make the field nullable
         has_null = any(v == {"type": "null"} for v in variants)
         non_null_variants = [v for v in variants if v != {"type": "null"}]
-        
+
         if len(non_null_variants) == 1:
             # Simple optional field
             base_schema = dict(non_null_variants[0])
-            
+
             if has_null:
                 if "type" in base_schema:
                     # Primitive type or object/array with explicit type: use type array
@@ -78,21 +78,29 @@ def _simplify_schema_for_groq(schema: Dict[str, Any]) -> Dict[str, Any]:
                     # Reference: we must keep anyOf or it will lose nullability after inlining
                     # But we should simplify the ref variant itself
                     return {
-                        "anyOf": [_simplify_schema_for_groq(base_schema), {"type": "null"}],
-                        **{k: v for k, v in schema.items() if k not in ("anyOf", "type")}
+                        "anyOf": [
+                            _simplify_schema_for_groq(base_schema),
+                            {"type": "null"},
+                        ],
+                        **{
+                            k: v
+                            for k, v in schema.items()
+                            if k not in ("anyOf", "type")
+                        },
                     }
-            
+
             # Merge top-level metadata
             for key in ("description", "title", "default"):
                 if key in schema and key not in base_schema:
                     base_schema[key] = schema[key]
-            
+
             return _simplify_schema_for_groq(base_schema)
-        
+
         # If there are multiple non-null variants, keep anyOf but simplify each
         return {
-            "anyOf": [_simplify_schema_for_groq(v) for v in non_null_variants] + ([{"type": "null"}] if has_null else []),
-            **{k: v for k, v in schema.items() if k != "anyOf"}
+            "anyOf": [_simplify_schema_for_groq(v) for v in non_null_variants]
+            + ([{"type": "null"}] if has_null else []),
+            **{k: v for k, v in schema.items() if k != "anyOf"},
         }
 
     return {
@@ -119,10 +127,10 @@ def pydantic_to_groq_function(
     # 1. Get raw schema
     raw_schema = model_class.model_json_schema()
     defs = raw_schema.get("$defs", {})
-    
+
     # 2. Simplify (remove anyOf nulls)
     simplified = _simplify_schema_for_groq(raw_schema)
-    
+
     # 3. Inline all $ref pointers
     # Note: We pass the simplified version of defs too
     simplified_defs = {k: _simplify_schema_for_groq(v) for k, v in defs.items()}
@@ -148,7 +156,7 @@ def pydantic_to_groq_function(
 class GroqProvider(LLMProvider):
     """Groq LLM provider implementation with function calling support."""
 
-    def __init__(self, api_key: str = None, model: str = "llama-3.3-70b-versatile"):
+    def __init__(self, api_key: str = None, model: str = None):
         from core.config import get_settings
 
         settings = get_settings()
@@ -156,7 +164,7 @@ class GroqProvider(LLMProvider):
         if not self.api_key:
             raise ValueError("GROQ_API_KEY environment variable is required")
         self.client = Groq(api_key=self.api_key)
-        self.model = model
+        self.model = model or settings.GROQ_MODEL
 
     async def generate_response(self, prompt: str) -> str:
         """Generate response using Groq API (text mode)."""
@@ -169,12 +177,18 @@ class GroqProvider(LLMProvider):
         return response.choices[0].message.content
 
     async def parse_with_function_calling(
-        self, prompt: str, model_class: Type[BaseModel], description: str = None, tool_name: str = None
+        self,
+        prompt: str,
+        model_class: Type[BaseModel],
+        description: str = None,
+        tool_name: str = None,
     ) -> Dict[str, Any]:
         """
         Use Groq's function calling to parse text into a structured format.
         """
-        function_def = pydantic_to_groq_function(model_class, name=tool_name, description=description)
+        function_def = pydantic_to_groq_function(
+            model_class, name=tool_name, description=description
+        )
 
         try:
             response = await asyncio.to_thread(
@@ -183,7 +197,7 @@ class GroqProvider(LLMProvider):
                 messages=[{"role": "user", "content": prompt}],
                 tools=[function_def],
                 tool_choice="required",
-                max_tokens=4096,
+                max_tokens=8192,
             )
 
             message = response.choices[0].message
@@ -196,8 +210,10 @@ class GroqProvider(LLMProvider):
                 raw_json_str = message.content
 
             if raw_json_str:
-                logger.info(f"Attempting to parse JSON from response (length: {len(raw_json_str)})")
-                
+                logger.info(
+                    f"Attempting to parse JSON from response (length: {len(raw_json_str)})"
+                )
+
                 # 1. Try direct parse
                 try:
                     return json.loads(raw_json_str)
@@ -218,17 +234,19 @@ class GroqProvider(LLMProvider):
                     content = raw_json_str.strip()
                     if "```" in content:
                         # Extract content between markers
-                        match = re.search(r'```(?:json)?\s*(.*?)\s*```', content, re.DOTALL)
+                        match = re.search(
+                            r"```(?:json)?\s*(.*?)\s*```", content, re.DOTALL
+                        )
                         if match:
                             content = match.group(1)
-                    
+
                     # Find potential JSON block (first { to last })
-                    match = re.search(r'(\{.*\})', content, re.DOTALL)
+                    match = re.search(r"(\{.*\})", content, re.DOTALL)
                     if match:
                         potential_json = match.group(1)
                         # Remove problematic custom tags that some models might add
-                        potential_json = re.sub(r'</?function>', '', potential_json)
-                        
+                        potential_json = re.sub(r"</?function>", "", potential_json)
+
                         try:
                             return json.loads(potential_json)
                         except json.JSONDecodeError:
@@ -236,11 +254,15 @@ class GroqProvider(LLMProvider):
                             try:
                                 return json.loads(potential_json.replace("\\'", "'"))
                             except json.JSONDecodeError:
-                                logger.error("Regex matched a block but it's still not valid JSON")
+                                logger.error(
+                                    "Regex matched a block but it's still not valid JSON"
+                                )
                 except Exception as e:
                     logger.error(f"Regex extraction error: {e}")
 
-            logger.error(f"Failed to extract valid JSON from Groq response. Raw start: {raw_json_str[:500]}")
+            logger.error(
+                f"Failed to extract valid JSON from Groq response. Raw start: {raw_json_str[:500]}"
+            )
             return {}
 
         except Exception as e:
