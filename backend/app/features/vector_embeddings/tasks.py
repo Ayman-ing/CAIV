@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.celery_app import celery_app
 from core.config import get_settings
-from db.session import get_async_session
+from db.session import SessionLocal
 from .service import EmbeddingService
 from .repository import EmbeddingRepository
 from .text_formatter import TextFormatter
@@ -19,8 +19,7 @@ logger = logging.getLogger(__name__)
 
 async def _get_session() -> AsyncSession:
     """Get database session."""
-    async_session = get_async_session()
-    return async_session()
+    return SessionLocal()
 
 
 def _run_async(coro):
@@ -88,8 +87,7 @@ async def _index_profile_async(profile_uuid: str) -> dict:
         "sections": {},
     }
 
-    AsyncSessionLocal = get_async_session()
-    async with AsyncSessionLocal() as session:
+    async with SessionLocal() as session:
         try:
             from features.profiles.models import Profile
 
@@ -275,8 +273,7 @@ async def _index_entity_async(
         logger.warning(f"Empty text for entity {entity_uuid}")
         return result
 
-    AsyncSessionLocal = get_async_session()
-    async with AsyncSessionLocal() as session:
+    async with SessionLocal() as session:
         try:
             embedding_vector = await EmbeddingService.generate_single_embedding(text)
             logger.debug(

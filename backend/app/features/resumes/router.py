@@ -7,7 +7,7 @@ FastAPI routes for resume and component management.
 from typing import List
 from fastapi import APIRouter, Depends, Query
 from core.exceptions import HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.session import get_db
 from features.auth.dependencies import get_current_user
@@ -22,7 +22,7 @@ from .schemas import (
 router = APIRouter(prefix="/api/v1/profiles/{profile_id}/resumes", tags=["resumes"])
 
 
-def get_resume_service(db: Session = Depends(get_db)) -> ResumeService:
+async def get_resume_service(db: AsyncSession = Depends(get_db)) -> ResumeService:
     """Dependency to get resume service"""
     repository = ResumeRepository(db)
     return ResumeService(repository)
@@ -42,7 +42,7 @@ async def create_resume(
         raise HTTPException(status_code=403, message="Cannot create resume for another user")
     
     try:
-        return service.create_resume(user_id, resume_data)
+        return await service.create_resume(user_id, resume_data)
     except ValueError as e:
         raise HTTPException(status_code=400, message=str(e))
 
@@ -57,7 +57,7 @@ async def get_user_resumes(
     if current_user.id != user_id:
         raise HTTPException(status_code=403, message="Cannot access another user's resumes")
     
-    return service.get_user_resumes(user_id)
+    return await service.get_user_resumes(user_id)
 
 @router.get("/{resume_uuid}", response_model=GeneratedResumeResponse)
 async def get_resume(
@@ -71,12 +71,12 @@ async def get_resume(
     if current_user.id != user_id:
         raise HTTPException(status_code=403, message="Cannot access another user's resume")
     """Get a specific resume by UUID with all components"""
-    resume = service.get_resume_by_uuid(resume_uuid)
+    resume = await service.get_resume_by_uuid(resume_uuid)
     if not resume:
         raise HTTPException(status_code=404, message="Resume not found")
     
     # Check ownership
-    if not service.check_resume_ownership(resume_uuid, current_user.id):
+    if not await service.check_resume_ownership(resume_uuid, current_user.id):
         raise HTTPException(status_code=403, message="Not authorized to access this resume")
     
     return resume
@@ -95,7 +95,7 @@ async def get_user_resumes(
     if user_uuid != current_user.uuid:
         raise HTTPException(status_code=403, message="Not authorized to access other users' resumes")
     
-    return service.get_user_resumes(current_user.id, skip, limit)
+    return await service.get_user_resumes(current_user.id, skip, limit)
 
 
 @router.put("/{resume_uuid}", response_model=GeneratedResumeResponse)
@@ -107,11 +107,11 @@ async def update_resume(
 ):
     """Update a resume"""
     # Check ownership
-    if not service.check_resume_ownership(resume_uuid, current_user.id):
+    if not await service.check_resume_ownership(resume_uuid, current_user.id):
         raise HTTPException(status_code=403, message="Not authorized to update this resume")
     
     try:
-        updated_resume = service.update_resume(resume_uuid, resume_update)
+        updated_resume = await service.update_resume(resume_uuid, resume_update)
         if not updated_resume:
             raise HTTPException(status_code=404, message="Resume not found")
         return updated_resume
@@ -127,10 +127,10 @@ async def delete_resume(
 ):
     """Delete a resume and all its components"""
     # Check ownership
-    if not service.check_resume_ownership(resume_uuid, current_user.id):
+    if not await service.check_resume_ownership(resume_uuid, current_user.id):
         raise HTTPException(status_code=403, message="Not authorized to delete this resume")
     
-    success = service.delete_resume(resume_uuid)
+    success = await service.delete_resume(resume_uuid)
     if not success:
         raise HTTPException(status_code=404, message="Resume not found")
 
@@ -145,10 +145,10 @@ async def create_component(
 ):
     """Create a new component for a resume"""
     # Check ownership
-    if not service.check_resume_ownership(resume_uuid, current_user.id):
+    if not await service.check_resume_ownership(resume_uuid, current_user.id):
         raise HTTPException(status_code=403, message="Not authorized to modify this resume")
     
-    component = service.create_component(resume_uuid, component_data)
+    component = await service.create_component(resume_uuid, component_data)
     if not component:
         raise HTTPException(status_code=404, message="Resume not found")
     
@@ -163,10 +163,10 @@ async def get_resume_components(
 ):
     """Get all components for a resume"""
     # Check ownership
-    if not service.check_resume_ownership(resume_uuid, current_user.id):
+    if not await service.check_resume_ownership(resume_uuid, current_user.id):
         raise HTTPException(status_code=403, message="Not authorized to access this resume")
     
-    components = service.get_resume_components(resume_uuid)
+    components = await service.get_resume_components(resume_uuid)
     if components is None:
         raise HTTPException(status_code=404, message="Resume not found")
     
@@ -180,12 +180,12 @@ async def get_component(
     service: ResumeService = Depends(get_resume_service)
 ):
     """Get a specific component by UUID"""
-    component = service.get_component_by_uuid(component_uuid)
+    component = await service.get_component_by_uuid(component_uuid)
     if not component:
         raise HTTPException(status_code=404, message="Component not found")
     
     # Check ownership
-    if not service.check_component_ownership(component_uuid, current_user.id):
+    if not await service.check_component_ownership(component_uuid, current_user.id):
         raise HTTPException(status_code=403, message="Not authorized to access this component")
     
     return component
@@ -200,10 +200,10 @@ async def update_component(
 ):
     """Update a resume component"""
     # Check ownership
-    if not service.check_component_ownership(component_uuid, current_user.id):
+    if not await service.check_component_ownership(component_uuid, current_user.id):
         raise HTTPException(status_code=403, message="Not authorized to update this component")
     
-    updated_component = service.update_component(component_uuid, component_update)
+    updated_component = await service.update_component(component_uuid, component_update)
     if not updated_component:
         raise HTTPException(status_code=404, message="Component not found")
     
@@ -218,9 +218,9 @@ async def delete_component(
 ):
     """Delete a resume component"""
     # Check ownership
-    if not service.check_component_ownership(component_uuid, current_user.id):
+    if not await service.check_component_ownership(component_uuid, current_user.id):
         raise HTTPException(status_code=403, message="Not authorized to delete this component")
     
-    success = service.delete_component(component_uuid)
+    success = await service.delete_component(component_uuid)
     if not success:
         raise HTTPException(status_code=404, message="Component not found")

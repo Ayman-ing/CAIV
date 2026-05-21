@@ -15,7 +15,7 @@ async def register(
     auth_service: AuthService = Depends(get_auth_service)
 ):
     """Register a new user"""
-    user, access_token = auth_service.register_user(user_data)
+    user, access_token = await auth_service.register_user(user_data)
     
     return {
         "access_token": access_token,
@@ -30,7 +30,7 @@ async def login(
     auth_service: AuthService = Depends(get_auth_service)
 ):
     """Login user and return JWT token"""
-    user, access_token = auth_service.authenticate_user(form_data.username, form_data.password)
+    user, access_token = await auth_service.authenticate_user(form_data.username, form_data.password)
     
     return {
         "access_token": access_token,
@@ -51,7 +51,7 @@ async def change_password(
     auth_service: AuthService = Depends(get_auth_service)
 ):
     """Change user password"""
-    auth_service.change_user_password(current_user, password_data)
+    await auth_service.change_user_password(current_user, password_data)
     return {"message": "Password changed successfully"}
 
 @router.post("/request-password-reset")
@@ -60,7 +60,7 @@ async def request_password_reset(
     auth_service: AuthService = Depends(get_auth_service)
 ):
     """Request password reset"""
-    reset_token = auth_service.request_password_reset(password_reset)
+    reset_token = await auth_service.request_password_reset(password_reset)
     
     if reset_token:
         # In production, send this token via email
@@ -77,5 +77,5 @@ async def reset_password(
     auth_service: AuthService = Depends(get_auth_service)
 ):
     """Reset password using reset token"""
-    auth_service.reset_user_password(reset_data)
+    await auth_service.reset_user_password(reset_data)
     return {"message": "Password reset successfully"}

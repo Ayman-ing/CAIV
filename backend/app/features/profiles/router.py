@@ -8,7 +8,7 @@ import logging
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from core.exceptions import HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.session import get_db
 from features.auth.dependencies import get_current_user
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/profiles", tags=["profiles"])
 
 
-def get_profile_service(db: Session = Depends(get_db)) -> ProfileService:
+async def get_profile_service(db: AsyncSession = Depends(get_db)) -> ProfileService:
     """Dependency to get profile service"""
     repository = ProfileRepository(db)
     return ProfileService(repository)
@@ -41,7 +41,7 @@ async def create_profile(
         raise HTTPException(status_code=403, message="Cannot create profile for another user")
     
     try:
-        return service.create_profile(current_user.id, profile_data)
+        return await service.create_profile(current_user.id, profile_data)
     except ValueError as e:
         raise HTTPException(status_code=400, message=str(e))
 
@@ -56,7 +56,7 @@ async def get_user_profiles(
     if str(current_user.uuid) != user_uuid:
         raise HTTPException(status_code=403, message="Cannot access another user's profiles")
     
-    profile = service.get_user_profile(current_user.id)
+    profile = await service.get_user_profile(current_user.id)
     return [profile] if profile else []
 
 
@@ -71,10 +71,10 @@ async def get_profile(
     if str(current_user.uuid) != user_uuid:
         raise HTTPException(status_code=403, message="Cannot access another user's profile")
     
-    if not service.check_profile_ownership(profile_uuid, current_user.id):
+    if not await service.check_profile_ownership(profile_uuid, current_user.id):
         raise HTTPException(status_code=403, message="Cannot access another user's profile")
         
-    profile = service.get_profile_by_uuid(profile_uuid)
+    profile = await service.get_profile_by_uuid(profile_uuid)
     if not profile:
         raise HTTPException(status_code=404, message="Profile not found")
     return profile
@@ -92,11 +92,11 @@ async def update_profile(
     if str(current_user.uuid) != user_uuid:
         raise HTTPException(status_code=403, message="Cannot update another user's profile")
         
-    if not service.check_profile_ownership(profile_uuid, current_user.id):
+    if not await service.check_profile_ownership(profile_uuid, current_user.id):
         raise HTTPException(status_code=403, message="Cannot update another user's profile")
     
     try:
-        updated = service.update_profile(profile_uuid, profile_data)
+        updated = await service.update_profile(profile_uuid, profile_data)
         if not updated:
             raise HTTPException(status_code=404, message="Profile not found")
         return updated
@@ -115,10 +115,10 @@ async def delete_profile(
     if str(current_user.uuid) != user_uuid:
         raise HTTPException(status_code=403, message="Cannot delete another user's profile")
         
-    if not service.check_profile_ownership(profile_uuid, current_user.id):
+    if not await service.check_profile_ownership(profile_uuid, current_user.id):
         raise HTTPException(status_code=403, message="Cannot delete another user's profile")
     
-    success = service.delete_profile(profile_uuid)
+    success = await service.delete_profile(profile_uuid)
     if not success:
         raise HTTPException(status_code=404, message="Profile not found")
     
@@ -153,11 +153,11 @@ async def index_profile(
     if str(current_user.uuid) != user_uuid:
         raise HTTPException(status_code=403, message="Cannot index another user's profile")
     
-    if not service.check_profile_ownership(profile_uuid, current_user.id):
+    if not await service.check_profile_ownership(profile_uuid, current_user.id):
         raise HTTPException(status_code=403, message="Cannot index another user's profile")
     
     # Verify profile exists
-    profile = service.get_profile_by_uuid(profile_uuid)
+    profile = await service.get_profile_by_uuid(profile_uuid)
     if not profile:
         raise HTTPException(status_code=404, message="Profile not found")
     

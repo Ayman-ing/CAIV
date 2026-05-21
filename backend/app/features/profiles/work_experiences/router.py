@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, status
 from core.exceptions import HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 import uuid
 
@@ -16,10 +16,10 @@ router = APIRouter(
 )
 
 
-def check_profile_ownership(db: Session, current_user: User, profile_uuid: str):
+async def check_profile_ownership(db: AsyncSession, current_user: User, profile_uuid: str):
     """Ensure the user owns the profile they are trying to manipulate"""
     repo = ProfileRepository(db)
-    profile = repo.get_by_uuid(profile_uuid)
+    profile = await repo.get_by_uuid(profile_uuid)
     if not profile or profile.user_id != current_user.id:
         raise HTTPException(
             status_code=403,
@@ -31,17 +31,17 @@ def check_profile_ownership(db: Session, current_user: User, profile_uuid: str):
 @router.post(
     "/", response_model=WorkExperienceResponse, status_code=status.HTTP_201_CREATED
 )
-def create_work_experience(
+async def create_work_experience(
     profile_uuid: str,
     work_exp_data: WorkExperienceCreate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """Create a new work experience for the specified profile"""
-    check_profile_ownership(db, current_user, profile_uuid)
+    await check_profile_ownership(db, current_user, profile_uuid)
     service = WorkExperienceService(db)
     try:
-        work_exp = service.create_work_experience(profile_uuid, work_exp_data)
+        work_exp = await service.create_work_experience(profile_uuid, work_exp_data)
 
         # Trigger async indexing
         # trigger_section_item_indexing(
@@ -57,29 +57,29 @@ def create_work_experience(
 
 
 @router.get("/", response_model=List[WorkExperienceResponse])
-def get_profile_work_experiences(
+async def get_profile_work_experiences(
     profile_uuid: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """Get all work experiences for the specified profile"""
-    check_profile_ownership(db, current_user, profile_uuid)
+    await check_profile_ownership(db, current_user, profile_uuid)
     service = WorkExperienceService(db)
-    return service.get_work_experiences_by_profile(profile_uuid)
+    return await service.get_work_experiences_by_profile(profile_uuid)
 
 
 @router.put("/{work_exp_uuid}", response_model=WorkExperienceResponse)
-def update_work_experience(
+async def update_work_experience(
     profile_uuid: str,
     work_exp_uuid: str,
     work_exp_data: WorkExperienceUpdate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """Update work experience information by UUID"""
-    check_profile_ownership(db, current_user, profile_uuid)
+    await check_profile_ownership(db, current_user, profile_uuid)
     service = WorkExperienceService(db)
-    work_exp = service.update_work_experience_by_uuid(work_exp_uuid, work_exp_data)
+    work_exp = await service.update_work_experience_by_uuid(work_exp_uuid, work_exp_data)
     if not work_exp:
         raise HTTPException(status_code=404, message="Work experience not found")
 
@@ -95,14 +95,14 @@ def update_work_experience(
 
 
 @router.delete("/{work_exp_uuid}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_work_experience(
+async def delete_work_experience(
     profile_uuid: str,
     work_exp_uuid: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """Delete a work experience by UUID"""
-    check_profile_ownership(db, current_user, profile_uuid)
+    await check_profile_ownership(db, current_user, profile_uuid)
     service = WorkExperienceService(db)
-    if not service.delete_work_experience_by_uuid(work_exp_uuid):
+    if not await service.delete_work_experience_by_uuid(work_exp_uuid):
         raise HTTPException(status_code=404, message="Work experience not found")

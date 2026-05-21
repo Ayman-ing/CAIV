@@ -65,7 +65,7 @@ async def get_resume_status(
     """
     Get the processing status and extracted data for an uploaded resume
     """
-    return resume_import_service.get_resume_status(resume_id, current_user.id)
+    return await resume_import_service.get_resume_status(resume_id, current_user.id)
 
 
 @router.post("/confirm", response_model=ResumeImportStatus)
@@ -80,7 +80,7 @@ async def confirm_resume_import(
     When confirmed, the extracted data can be used to populate the user's profile.
     When rejected, the resume data is marked as not usable.
     """
-    return resume_import_service.confirm_resume_import(
+    return await resume_import_service.confirm_resume_import(
         confirm_data.resume_id,
         current_user.id,
         confirm_data.confirm
@@ -95,4 +95,4 @@ async def list_user_resumes(
     """
     List all resumes uploaded by the current user
     """
-    return resume_import_service.get_user_resumes(current_user.id)
+    return await resume_import_service.get_user_resumes(current_user.id)

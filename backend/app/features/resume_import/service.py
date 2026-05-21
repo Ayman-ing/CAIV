@@ -6,7 +6,7 @@ import logging
 from typing import Dict, Any, Optional
 from uuid import UUID
 from datetime import date
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.exceptions import HTTPException
 from features.profiles.repository import ProfileRepository
@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 class ResumeImportService:
     """Service for handling resume import operations"""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
         self.repo = ResumeImportRepository(db)
         self.pdf_parser = PDFParserService()
@@ -66,7 +66,7 @@ class ResumeImportService:
         """Upload a resume file, parse it, and return extracted data"""
         try:
             # Verify profile ownership
-            profile = self.profile_repo.get_by_uuid(str(profile_id))
+            profile = await self.profile_repo.get_by_uuid(str(profile_id))
             if not profile or profile.user_id != user_id:
                 raise HTTPException(status_code=403, message="Access denied to this profile")
 
@@ -75,7 +75,7 @@ class ResumeImportService:
             extracted_data = await self.pdf_parser.parse_cv_structure(file_path)
 
             # Store extraction result for user confirmation
-            uploaded_resume = self.repo.create_uploaded_resume(
+            uploaded_resume = await self.repo.create_uploaded_resume(
                 profile_id=profile.id,
                 user_id=user_id,
                 filename=filename,
@@ -96,20 +96,20 @@ class ResumeImportService:
             logger.error(f"Error processing resume: {e}")
             raise HTTPException(status_code=500, message=f"Failed to process resume: {str(e)}")
 
-    def confirm_resume_import(self, resume_id: UUID, user_id: int, confirm: bool) -> ResumeImportStatus:
+    async def confirm_resume_import(self, resume_id: UUID, user_id: int, confirm: bool) -> ResumeImportStatus:
         """Confirm or reject a resume import"""
-        uploaded_resume = self.repo.get_uploaded_resume_by_uuid(resume_id)
+        uploaded_resume = await self.repo.get_uploaded_resume_by_uuid(resume_id)
         if not uploaded_resume or uploaded_resume.user_id != user_id:
             raise HTTPException(status_code=404, message="Resume record not found")
 
         if confirm and uploaded_resume.import_status == "pending":
             logger.info(f"Importing data from resume {resume_id} into profile {uploaded_resume.profile.uuid}")
-            self._populate_profile(str(uploaded_resume.profile.uuid), uploaded_resume.extracted_data)
+            await self._populate_profile(str(uploaded_resume.profile.uuid), uploaded_resume.extracted_data)
             status = "confirmed"
         else:
             status = "confirmed" if confirm else "rejected"
 
-        updated = self.repo.update_resume_status(uploaded_resume, status)
+        updated = await self.repo.update_resume_status(uploaded_resume, status)
         return ResumeImportStatus(
             resume_id=updated.uuid,
             status=updated.import_status,
@@ -117,9 +117,16 @@ class ResumeImportService:
             updated_at=updated.updated_at
         )
 
-    def _populate_profile(self, profile_uuid: str, data: Dict[str, Any]) -> None:
+    async def _populate_profile(self, profile_uuid: str, data: Dict[str, Any]) -> None:
         """Populate profile sections using feature services"""
         
+        # Resolve profile once to avoid N+1 queries
+        profile = await self.profile_repo.get_by_uuid(profile_uuid)
+        if not profile:
+            logger.error(f"Profile {profile_uuid} not found, skipping population")
+            return
+        profile_uuid_str = str(profile.uuid)
+
         # Mapping of data keys to their respective services and schemas
         sections = [
             ("education", self.education_service.create_education, EducationCreate),
@@ -136,15 +143,13 @@ class ResumeImportService:
         contact = data.get("contact_info", {})
         if contact:
             from features.profiles.schemas import ProfileUpdate
-            db_profile = self.profile_repo.get_by_uuid(profile_uuid)
-            if db_profile:
-                update_data = ProfileUpdate(
-                    name=contact.get("name"),
-                    email=contact.get("email"),
-                    phone_number=contact.get("phone"),
-                    location=contact.get("location")
-                )
-                self.profile_repo.update(db_profile, update_data)
+            update_data = ProfileUpdate(
+                name=contact.get("name"),
+                email=contact.get("email"),
+                phone_number=contact.get("phone"),
+                location=contact.get("location")
+            )
+            await self.profile_repo.update(profile, update_data)
 
         # Import each section
         for key, create_method, schema_class in sections:
@@ -153,12 +158,9 @@ class ResumeImportService:
             
             for item in items:
                 try:
-                    # Validate and convert raw dict to Pydantic model
-                    # This handles date string -> date object conversion automatically
                     validated_item = schema_class.model_validate(item)
-                    create_method(profile_uuid, validated_item)
+                    await create_method(profile_uuid_str, validated_item)
                 except Exception as e:
-                    # Log detailed field-level errors for Pydantic ValidationErrors
                     try:
                         from pydantic import ValidationError
                         if isinstance(e, ValidationError):
@@ -170,32 +172,28 @@ class ResumeImportService:
                     except Exception:
                         pass
                     logger.warning(f"Skipping {key} item due to validation error: {e}")
-                    self.db.rollback()  # Reset transaction after failed item
-                    
-                    # Do not fall back if the item is already a custom section
+
                     if key == "custom_sections":
                         continue
-                        
-                    # ULTIMATE FAILSAFE: Convert failed item to a Custom Section to avoid data loss
+
                     try:
                         details = []
                         for k, v in item.items():
                             if v is not None:
                                 label = k.replace("_", " ").title()
                                 details.append(f"**{label}**: {v}")
-                        
+
                         title = f"Unresolved {key.replace('_', ' ').title()} (Imported)"
                         content = "\n".join(details)
-                        
+
                         custom_schema = CustomSectionCreate(title=title, content=content)
-                        self.custom_sections_service.create_custom_section(profile_uuid, custom_schema)
+                        await self.custom_sections_service.create_custom_section(profile_uuid_str, custom_schema)
                         logger.info(f"Gracefully recovered failed {key} item into custom sections")
                     except Exception as fallback_err:
                         logger.error(f"Failed to save fallback custom section: {fallback_err}")
-                        self.db.rollback()
 
-    def get_resume_status(self, resume_id: UUID, user_id: int) -> ResumeImportStatus:
-        res = self.repo.get_uploaded_resume_by_uuid(resume_id)
+    async def get_resume_status(self, resume_id: UUID, user_id: int) -> ResumeImportStatus:
+        res = await self.repo.get_uploaded_resume_by_uuid(resume_id)
         if not res or res.user_id != user_id:
             raise HTTPException(status_code=404, message="Resume not found")
         return ResumeImportStatus(
@@ -205,8 +203,8 @@ class ResumeImportService:
             updated_at=res.updated_at
         )
 
-    def get_user_resumes(self, user_id: int) -> Dict[str, Any]:
-        resumes = self.repo.get_resumes_by_user(user_id)
+    async def get_user_resumes(self, user_id: int) -> Dict[str, Any]:
+        resumes = await self.repo.get_resumes_by_user(user_id)
         return {"resumes": [
             {
                 "resume_id": str(r.uuid),

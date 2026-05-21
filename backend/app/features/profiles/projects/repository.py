@@ -1,13 +1,14 @@
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, List
 from .models import Project
 from .schemas import ProjectCreate, ProjectUpdate
 
 class ProjectRepository:
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
     
-    def create_with_profile_id(self, profile_id: int, project_data: ProjectCreate) -> Project:
+    async def create_with_profile_id(self, profile_id: int, project_data: ProjectCreate) -> Project:
         data_dict = project_data.model_dump()
         data_dict['profile_id'] = profile_id
         
@@ -17,36 +18,44 @@ class ProjectRepository:
         
         project = Project(**data_dict)
         self.db.add(project)
-        self.db.commit()
-        self.db.refresh(project)
+        await self.db.commit()
+        await self.db.refresh(project)
         return project
     
-    def get_by_uuid(self, project_uuid: str) -> Optional[Project]:
-        return self.db.query(Project).filter(Project.uuid == project_uuid).first()
+    async def get_by_uuid(self, project_uuid: str) -> Optional[Project]:
+        result = await self.db.execute(select(Project).where(Project.uuid == project_uuid))
+        return result.scalars().first()
     
-    def get_by_profile_id(self, profile_id: int, skip: int = 0, limit: int = 100) -> List[Project]:
-        return (self.db.query(Project)
-                .filter(Project.profile_id == profile_id)
-                .offset(skip)
-                .limit(limit)
-                .all())
+    async def get_by_profile_id(self, profile_id: int, skip: int = 0, limit: int = 100) -> List[Project]:
+        result = await self.db.execute(
+            select(Project)
+            .where(Project.profile_id == profile_id)
+            .offset(skip)
+            .limit(limit)
+        )
+        return result.scalars().all()
     
-    def get_all(self, skip: int = 0, limit: int = 100) -> List[Project]:
-        return self.db.query(Project).offset(skip).limit(limit).all()
+    async def get_all(self, skip: int = 0, limit: int = 100) -> List[Project]:
+        result = await self.db.execute(select(Project).offset(skip).limit(limit))
+        return result.scalars().all()
     
-    def update_by_uuid(self, project_uuid: str, project_data: ProjectUpdate) -> Optional[Project]:
-        project = self.get_by_uuid(project_uuid)
+    async def update_by_uuid(self, project_uuid: str, project_data: ProjectUpdate) -> Optional[Project]:
+        project = await self.get_by_uuid(project_uuid)
         if project:
-            for field, value in project_data.model_dump(exclude_unset=True).items():
+            update_data = project_data.model_dump(exclude_unset=True)
+            # Convert HttpUrl to string for database storage
+            if update_data.get('url'):
+                update_data['url'] = str(update_data['url'])
+            for field, value in update_data.items():
                 setattr(project, field, value)
-            self.db.commit()
-            self.db.refresh(project)
+            await self.db.commit()
+            await self.db.refresh(project)
         return project
     
-    def delete_by_uuid(self, project_uuid: str) -> bool:
-        project = self.get_by_uuid(project_uuid)
+    async def delete_by_uuid(self, project_uuid: str) -> bool:
+        project = await self.get_by_uuid(project_uuid)
         if project:
-            self.db.delete(project)
-            self.db.commit()
+            await self.db.delete(project)
+            await self.db.commit()
             return True
         return False

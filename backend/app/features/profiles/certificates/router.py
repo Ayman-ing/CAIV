@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, status
 from core.exceptions import HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
 from db.session import get_db
@@ -16,10 +16,10 @@ router = APIRouter(
 )
 
 
-def check_profile_ownership(db: Session, current_user: User, profile_uuid: str):
+async def check_profile_ownership(db: AsyncSession, current_user: User, profile_uuid: str):
     """Ensure the user owns the profile they are trying to manipulate"""
     repo = ProfileRepository(db)
-    profile = repo.get_by_uuid(profile_uuid)
+    profile = await repo.get_by_uuid(profile_uuid)
     if not profile or profile.user_id != current_user.id:
         raise HTTPException(
             status_code=403,
@@ -31,17 +31,17 @@ def check_profile_ownership(db: Session, current_user: User, profile_uuid: str):
 @router.post(
     "/", response_model=CertificateResponse, status_code=status.HTTP_201_CREATED
 )
-def create_certificate(
+async def create_certificate(
     profile_uuid: str,
     certificate_data: CertificateCreate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """Create a new certificate for the specified profile"""
-    check_profile_ownership(db, current_user, profile_uuid)
+    await check_profile_ownership(db, current_user, profile_uuid)
     service = CertificateService(db)
     try:
-        certificate = service.create_certificate(profile_uuid, certificate_data)
+        certificate = await service.create_certificate(profile_uuid, certificate_data)
 
         # Trigger async indexing
         # trigger_section_item_indexing(
@@ -57,29 +57,29 @@ def create_certificate(
 
 
 @router.get("/", response_model=List[CertificateResponse])
-def get_profile_certificates(
+async def get_profile_certificates(
     profile_uuid: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """Get all certificates for the specified profile"""
-    check_profile_ownership(db, current_user, profile_uuid)
+    await check_profile_ownership(db, current_user, profile_uuid)
     service = CertificateService(db)
-    return service.get_certificates_by_profile(profile_uuid)
+    return await service.get_certificates_by_profile(profile_uuid)
 
 
 @router.put("/{certificate_uuid}", response_model=CertificateResponse)
-def update_certificate(
+async def update_certificate(
     profile_uuid: str,
     certificate_uuid: str,
     certificate_data: CertificateUpdate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """Update certificate information by UUID"""
-    check_profile_ownership(db, current_user, profile_uuid)
+    await check_profile_ownership(db, current_user, profile_uuid)
     service = CertificateService(db)
-    certificate = service.update_certificate_by_uuid(certificate_uuid, certificate_data)
+    certificate = await service.update_certificate_by_uuid(certificate_uuid, certificate_data)
     if not certificate:
         raise HTTPException(status_code=404, message="Certificate not found")
 
@@ -95,14 +95,14 @@ def update_certificate(
 
 
 @router.delete("/{certificate_uuid}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_certificate(
+async def delete_certificate(
     profile_uuid: str,
     certificate_uuid: str,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """Delete a certificate by UUID"""
-    check_profile_ownership(db, current_user, profile_uuid)
+    await check_profile_ownership(db, current_user, profile_uuid)
     service = CertificateService(db)
-    if not service.delete_certificate_by_uuid(certificate_uuid):
+    if not await service.delete_certificate_by_uuid(certificate_uuid):
         raise HTTPException(status_code=404, message="Certificate not found")

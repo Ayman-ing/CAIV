@@ -32,8 +32,8 @@ class User(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     last_login = Column(DateTime)
     
-    # Relationships - 1-to-1 with Profile
-    profile = relationship("Profile", back_populates="user", uselist=False)
+    # Relationships - 1-to-1 with Profile (cascade delete profile when user is deleted)
+    profile = relationship("Profile", back_populates="user", uselist=False, cascade="all, delete-orphan")
     job_descriptions = relationship("JobDescription", back_populates="user")
     uploaded_resumes = relationship("UploadedResume", back_populates="user")
     
@@ -65,8 +65,3 @@ class User(Base):
             return permission in admin_permissions or permission in user_permissions
         else:
             return permission in user_permissions
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow)
-    
-    profiles = relationship("Profile", back_populates="user")
-    job_descriptions = relationship("JobDescription", back_populates="user")

@@ -5,7 +5,7 @@ from passlib.context import CryptContext
 from fastapi import status
 from core.exceptions import HTTPException
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from features.users.models import User, UserRole
 from .repository import AuthRepository
@@ -21,7 +21,7 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 
 class AuthService:
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
         self.auth_repo = AuthRepository(db)
     
@@ -69,10 +69,10 @@ class AuthService:
             )
     
     # Business logic methods
-    def register_user(self, user_data: BaseModel,role: Optional[str]= UserRole.USER ) -> Tuple[User, str]:
+    async def register_user(self, user_data: BaseModel, role: Optional[str] = UserRole.USER) -> Tuple[User, str]:
         """Register a new user and return user + access token"""
         # Check if user already exists
-        if self.auth_repo.email_exists(user_data.email):
+        if await self.auth_repo.email_exists(user_data.email):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 message="Email already registered"
@@ -80,7 +80,7 @@ class AuthService:
         
         # Create new user
         hashed_password = self.get_password_hash(user_data.password)
-        user = self.auth_repo.create_user(
+        user = await self.auth_repo.create_user(
             email=user_data.email, 
             password_hash=hashed_password,
             first_name=user_data.first_name,
@@ -95,7 +95,7 @@ class AuthService:
         
         profile_service = ProfileService(ProfileRepository(self.db))
         profile_data = ProfileCreate(name=f"{user.first_name} {user.last_name}".strip())
-        profile_service.create_profile(user.id, profile_data)
+        await profile_service.create_profile(user.id, profile_data)
         
         # Create access token with enhanced payload
         access_token = self.create_access_token(data={
@@ -105,10 +105,10 @@ class AuthService:
         
         return user, access_token
     
-    def authenticate_user(self, email: str, password: str) -> Tuple[User, str]:
+    async def authenticate_user(self, email: str, password: str) -> Tuple[User, str]:
         """Authenticate user and return user + access token"""
         # Find user by email
-        user = self.auth_repo.get_user_by_email(email)
+        user = await self.auth_repo.get_user_by_email(email)
         
         # Verify user exists and password is correct
         if not user or not self.verify_password(password, user.password_hash):
@@ -126,7 +126,7 @@ class AuthService:
 
         return user, access_token
     
-    def change_user_password(self, user: User, password_data: PasswordChange) -> None:
+    async def change_user_password(self, user: User, password_data: PasswordChange) -> None:
         """Change user password"""
         # Verify current password
         if not self.verify_password(password_data.current_password, user.password_hash):
@@ -137,11 +137,11 @@ class AuthService:
         
         # Update password
         new_password_hash = self.get_password_hash(password_data.new_password)
-        self.auth_repo.update_user_password(user, new_password_hash)
+        await self.auth_repo.update_user_password(user, new_password_hash)
     
-    def request_password_reset(self, password_reset: PasswordReset) -> Optional[str]:
+    async def request_password_reset(self, password_reset: PasswordReset) -> Optional[str]:
         """Request password reset and return reset token if user exists"""
-        user = self.auth_repo.get_user_by_email(password_reset.email)
+        user = await self.auth_repo.get_user_by_email(password_reset.email)
         if not user:
             # Don't reveal if email exists for security
             return None
@@ -150,13 +150,13 @@ class AuthService:
         reset_token = self.create_password_reset_token(user.email)
         return reset_token
     
-    def reset_user_password(self, reset_data: PasswordResetConfirm) -> None:
+    async def reset_user_password(self, reset_data: PasswordResetConfirm) -> None:
         """Reset user password using reset token"""
         # Verify reset token and get email
         email = self.verify_password_reset_token(reset_data.token)
         
         # Find user
-        user = self.auth_repo.get_user_by_email(email)
+        user = await self.auth_repo.get_user_by_email(email)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -165,15 +165,15 @@ class AuthService:
         
         # Update password
         new_password_hash = self.get_password_hash(reset_data.new_password)
-        self.auth_repo.update_user_password(user, new_password_hash)
+        await self.auth_repo.update_user_password(user, new_password_hash)
     
-    def get_user_by_id(self, user_id: int) -> Optional[User]:
+    async def get_user_by_id(self, user_id: int) -> Optional[User]:
         """Get user by ID"""
-        return self.auth_repo.get_user_by_id(user_id)
+        return await self.auth_repo.get_user_by_id(user_id)
     
-    def get_user_by_uuid(self, user_uuid: str) -> Optional[User]:
+    async def get_user_by_uuid(self, user_uuid: str) -> Optional[User]:
         """Get user by UUID"""
-        return self.auth_repo.get_user_by_uuid(user_uuid)
+        return await self.auth_repo.get_user_by_uuid(user_uuid)
     
     @staticmethod
     def create_password_reset_token(email: str) -> str:

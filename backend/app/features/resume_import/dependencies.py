@@ -2,7 +2,7 @@
 Resume Import Dependencies - FastAPI dependency injection
 """
 from fastapi import Depends, UploadFile, File, Form
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from uuid import UUID
 
@@ -12,7 +12,7 @@ from features.auth.dependencies import get_current_user
 from .service import ResumeImportService
 
 
-def get_resume_import_service(db: Session = Depends(get_db)) -> ResumeImportService:
+async def get_resume_import_service(db: AsyncSession = Depends(get_db)) -> ResumeImportService:
     """Dependency to get ResumeImportService instance"""
     return ResumeImportService(db)
 

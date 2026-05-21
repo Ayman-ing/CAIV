@@ -15,7 +15,7 @@ from features.users.models import User
 class TestAuthService:
     """Test cases for AuthService methods"""
 
-    def test_password_hashing(self):
+    async def test_password_hashing(self):
         """Test password hashing and verification"""
         password = "test_password_123"
         
@@ -29,7 +29,7 @@ class TestAuthService:
         assert AuthService.verify_password(password, hashed) is True
         assert AuthService.verify_password("wrong_password", hashed) is False
 
-    def test_create_access_token(self):
+    async def test_create_access_token(self):
         """Test JWT token creation"""
         data = {"sub": "test@example.com", "user_id": "123"}
         
@@ -52,7 +52,7 @@ class TestAuthService:
         assert isinstance(token_custom, str)
         assert len(token_custom) > 0
 
-    def test_create_access_token_with_enhanced_payload(self):
+    async def test_create_access_token_with_enhanced_payload(self):
         """Test JWT token creation with enhanced payload (name and role)"""
         data = {
             "sub": "123e4567-e89b-12d3-a456-426614174000",
@@ -76,7 +76,7 @@ class TestAuthService:
         assert "exp" in decoded
         assert "iat" in decoded
 
-    def test_verify_token_valid(self):
+    async def test_verify_token_valid(self):
         """Test verifying valid JWT token"""
         data = {"sub": "test@example.com"}
         token = AuthService.create_access_token(data)
@@ -86,7 +86,7 @@ class TestAuthService:
         assert "exp" in decoded_data
         assert "iat" in decoded_data
 
-    def test_verify_token_invalid(self):
+    async def test_verify_token_invalid(self):
         """Test verifying invalid JWT token"""
         # Test with completely invalid token
         with pytest.raises(HTTPException) as exc_info:
@@ -103,11 +103,11 @@ class TestAuthService:
             AuthService.verify_token(expired_token)
         assert exc_info.value.status_code == 401
 
-    def test_register_user_success(self, auth_service, sample_user_data):
+    async def test_register_user_success(self, auth_service, sample_user_data):
         """Test successful user registration"""
         user_register = UserRegister(**sample_user_data)
         
-        user, access_token = auth_service.register_user(user_register)
+        user, access_token = await auth_service.register_user(user_register)
         
         # Verify user object
         assert isinstance(user, User)
@@ -123,19 +123,19 @@ class TestAuthService:
         decoded_data = AuthService.verify_token(access_token)
         assert decoded_data["sub"] == str(user.uuid)
 
-    def test_register_user_duplicate_email(self, auth_service, sample_user_data, created_user):
+    async def test_register_user_duplicate_email(self, auth_service, sample_user_data, created_user):
         """Test registration with duplicate email"""
         user_register = UserRegister(**sample_user_data)
         
         with pytest.raises(HTTPException) as exc_info:
-            auth_service.register_user(user_register)
+            await auth_service.register_user(user_register)
         
         assert exc_info.value.status_code == 400
         assert "already registered" in exc_info.value.message.lower()
 
-    def test_authenticate_user_success(self, auth_service, sample_user_data, created_user):
+    async def test_authenticate_user_success(self, auth_service, sample_user_data, created_user):
         """Test successful user authentication"""
-        user, access_token = auth_service.authenticate_user(
+        user, access_token = await auth_service.authenticate_user(
             sample_user_data["email"], 
             sample_user_data["password"]
         )
@@ -147,23 +147,23 @@ class TestAuthService:
         assert isinstance(access_token, str)
         assert len(access_token) > 0
 
-    def test_authenticate_user_wrong_email(self, auth_service, sample_user_data, created_user):
+    async def test_authenticate_user_wrong_email(self, auth_service, sample_user_data, created_user):
         """Test authentication with wrong email"""
         with pytest.raises(HTTPException) as exc_info:
-            auth_service.authenticate_user("wrong@example.com", sample_user_data["password"])
+            await auth_service.authenticate_user("wrong@example.com", sample_user_data["password"])
         
         assert exc_info.value.status_code == 401
         assert "incorrect" in exc_info.value.message.lower()
 
-    def test_authenticate_user_wrong_password(self, auth_service, sample_user_data, created_user):
+    async def test_authenticate_user_wrong_password(self, auth_service, sample_user_data, created_user):
         """Test authentication with wrong password"""
         with pytest.raises(HTTPException) as exc_info:
-            auth_service.authenticate_user(sample_user_data["email"], "wrong_password")
+            await auth_service.authenticate_user(sample_user_data["email"], "wrong_password")
         
         assert exc_info.value.status_code == 401
         assert "incorrect" in exc_info.value.message.lower()
 
-    def test_change_password_success(self, auth_service, created_user, sample_user_data):
+    async def test_change_password_success(self, auth_service, created_user, sample_user_data):
         """Test successful password change"""
         password_change = PasswordChange(
             current_password=sample_user_data["password"],
@@ -172,17 +172,17 @@ class TestAuthService:
         )
         
         # Should not raise exception
-        auth_service.change_user_password(created_user, password_change)
+        await auth_service.change_user_password(created_user, password_change)
         
         # Verify old password no longer works
         with pytest.raises(HTTPException):
-            auth_service.authenticate_user(created_user.email, sample_user_data["password"])
+            await auth_service.authenticate_user(created_user.email, sample_user_data["password"])
         
         # Verify new password works
-        user, token = auth_service.authenticate_user(created_user.email, "NewPassword123!")
+        user, token = await auth_service.authenticate_user(created_user.email, "NewPassword123!")
         assert user.uuid == created_user.uuid
 
-    def test_change_password_wrong_current_password(self, auth_service, created_user):
+    async def test_change_password_wrong_current_password(self, auth_service, created_user):
         """Test password change with wrong current password"""
         password_change = PasswordChange(
             current_password="wrong_password",
@@ -191,7 +191,7 @@ class TestAuthService:
         )
         
         with pytest.raises(HTTPException) as exc_info:
-            auth_service.change_user_password(created_user, password_change)
+            await auth_service.change_user_password(created_user, password_change)
         
         assert exc_info.value.status_code == 400
         assert "incorrect" in exc_info.value.message.lower()
@@ -200,7 +200,7 @@ class TestAuthService:
 class TestPasswordValidation:
     """Test password validation logic"""
 
-    def test_password_strength_validation(self):
+    async def test_password_strength_validation(self):
         """Test password strength requirements"""
         # This test depends on your password validation rules
         # For now, just test basic hashing functionality

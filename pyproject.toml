@@ -42,3 +42,9 @@ torch = { index = "pytorch-rocm" }
 torchvision = { index = "pytorch-rocm" }
 torchaudio = { index = "pytorch-rocm" }
 pytorch-triton-rocm = { index = "pytorch-rocm" }
+
+[dependency-groups]
+dev = [
+    "aiosqlite",
+    "pytest-asyncio",
+]

@@ -1,7 +1,7 @@
 from fastapi import Depends, status
 from core.exceptions import HTTPException
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from uuid import UUID
 
@@ -13,7 +13,7 @@ from .schemas import TokenData
 # OAuth2 scheme for token authentication
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
-def get_auth_service(db: Session = Depends(get_db)) -> AuthService:
+async def get_auth_service(db: AsyncSession = Depends(get_db)) -> AuthService:
     """Dependency to get AuthService instance"""
     return AuthService(db)
 
@@ -40,7 +40,7 @@ async def get_current_user(
         raise credentials_exception
     
     # Get user from database via service
-    user = auth_service.get_user_by_uuid(user_uuid)
+    user = await auth_service.get_user_by_uuid(user_uuid)
     if user is None:
         raise credentials_exception
     
@@ -84,7 +84,7 @@ async def get_current_user_from_token(
     except ValueError:  # Invalid UUID
         raise credentials_exception
 
-def get_optional_current_user(
+async def get_optional_current_user(
     auth_service: AuthService = Depends(get_auth_service),
     token: Optional[str] = Depends(oauth2_scheme)
 ) -> Optional[User]:
@@ -100,7 +100,7 @@ def get_optional_current_user(
         if user_uuid is None:
             return None
         
-        user = auth_service.get_user_by_uuid(user_uuid)
+        user = await auth_service.get_user_by_uuid(user_uuid)
         return user
     except:
         return None
