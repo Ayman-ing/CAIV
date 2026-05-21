@@ -39,7 +39,6 @@ class ProfessionalSummaryRepository:
             setattr(db_summary, key, value)
         
         self.db.commit()
-        self.db.refresh(db_summary)
         return db_summary
 
     def delete(self, db_summary: ProfessionalSummary) -> bool:

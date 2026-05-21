@@ -53,7 +53,9 @@ try:
                 spec.loader.exec_module(module)
                 print(f"✅ Imported {file_path}")
         except Exception as e:
-            print(f"⚠️  Warning: Could not import {file_path}: {e}")
+            msg = str(e)
+            if "already defined for this MetaData instance" not in msg:
+                print(f"⚠️  Warning: Could not import {file_path}: {e}")
     
     print(f"✅ Successfully imported models")
     print(f"📊 Found {len(Base.metadata.tables)} tables to create:")

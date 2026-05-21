@@ -3,8 +3,10 @@ Profile Router
 
 FastAPI routes for user profile management.
 """
+import logging
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 from core.exceptions import HTTPException
 from sqlalchemy.orm import Session
 
@@ -14,6 +16,9 @@ from features.users.models import User
 from features.profiles.repository import ProfileRepository
 from features.profiles.service import ProfileService
 from features.profiles.schemas import ProfileCreate, ProfileUpdate, ProfileResponse
+from features.vector_embeddings.tasks import index_profile_task
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/profiles", tags=["profiles"])
 
@@ -118,3 +123,58 @@ async def delete_profile(
         raise HTTPException(status_code=404, message="Profile not found")
     
     return {"message": "Profile deleted successfully"}
+
+
+class IndexingResponse(BaseModel):
+    """Response from profile indexing endpoint"""
+    task_id: str
+    message: str
+    profile_uuid: str
+    status: str
+
+
+@router.post("/{profile_uuid}/index", response_model=IndexingResponse, status_code=202)
+async def index_profile(
+    user_uuid: str,
+    profile_uuid: str,
+    current_user: User = Depends(get_current_user),
+    service: ProfileService = Depends(get_profile_service)
+):
+    """
+    Trigger embedding generation and indexing for a profile.
+    
+    This endpoint starts an async task to generate embeddings for all profile items
+    (work experiences, projects, skills, education, languages, certificates, etc.)
+    and stores them in the vector database (pgvector).
+    
+    Returns a task ID that can be used to poll for status.
+    """
+    # Verify user owns this profile
+    if str(current_user.uuid) != user_uuid:
+        raise HTTPException(status_code=403, message="Cannot index another user's profile")
+    
+    if not service.check_profile_ownership(profile_uuid, current_user.id):
+        raise HTTPException(status_code=403, message="Cannot index another user's profile")
+    
+    # Verify profile exists
+    profile = service.get_profile_by_uuid(profile_uuid)
+    if not profile:
+        raise HTTPException(status_code=404, message="Profile not found")
+    
+    try:
+        # Trigger async indexing task
+        task = index_profile_task.delay(profile_uuid)
+        
+        logger.info(
+            f"Indexing triggered for profile {profile_uuid} "
+            f"(user {user_uuid}) → task_id={task.id}"
+        )
+        return IndexingResponse(
+            task_id=task.id,
+            message="Profile indexing started successfully",
+            profile_uuid=profile_uuid,
+            status="pending"
+        )
+    except Exception as e:
+        logger.error(f"Failed to start indexing for profile {profile_uuid}: {str(e)}")
+        raise HTTPException(status_code=500, message=f"Failed to start indexing: {str(e)}")

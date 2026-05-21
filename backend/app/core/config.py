@@ -49,15 +49,29 @@ class Settings(BaseSettings):
         env="GROQ_MODEL",
         description="Groq model for LLM calls",
     )
-    QDRANT_URL: str = Field(
-        env="QDRANT_URL", description="Qdrant URL for vector database"
+
+    # Vector Embeddings (pgvector)
+    EMBEDDING_MODEL: str = Field(
+        default="all-MiniLM-L6-v2",
+        env="EMBEDDING_MODEL",
+        description="Sentence transformer model for embeddings",
     )
-    QDRANT_API_KEY: str = Field(
-        env="QDRANT_API_KEY", description="Qdrant API key for vector database"
+    EMBEDDING_DIMENSION: int = Field(
+        default=384,
+        env="EMBEDDING_DIMENSION",
+        description="Dimension of embeddings (384 for all-MiniLM-L6-v2)",
     )
-    QDRANT_COLLECTION_NAME: str = Field(
-        env="QDRANT_COLLECTION_NAME",
-        description="Qdrant collection name for vector database",
+
+    # Redis & Celery
+    REDIS_URL: str = Field(
+        default="redis://localhost:6379/0",
+        env="REDIS_URL",
+        description="Redis connection URL for Celery broker",
+    )
+    REDIS_BACKEND_URL: str = Field(
+        default="redis://localhost:6379/1",
+        env="REDIS_BACKEND_URL",
+        description="Redis URL for Celery result backend",
     )
 
     # Logging
@@ -70,6 +84,7 @@ class Settings(BaseSettings):
         env_file = Path(__file__).parent.parent / ".env"
         env_file_encoding = "utf-8"
         case_sensitive = True
+        extra = "ignore"
 
     @property
     def is_development(self) -> bool:
