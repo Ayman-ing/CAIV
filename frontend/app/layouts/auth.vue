@@ -75,15 +75,22 @@ onMounted(() => {
               <Icon name="heroicons:home" class="w-4 h-4" />
               <span>Dashboard</span>
             </NuxtLink>
-            <NuxtLink 
-              to="/resumes" 
+            <NuxtLink
+              to="/resumes"
               class="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
             >
               <Icon name="heroicons:document-duplicate" class="w-4 h-4" />
               <span>My Resumes</span>
             </NuxtLink>
-            <NuxtLink 
-              to="/templates" 
+            <NuxtLink
+              to="/cv-editor"
+              class="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            >
+              <Icon name="heroicons:document-text" class="w-4 h-4" />
+              <span>CV Editor</span>
+            </NuxtLink>
+            <NuxtLink
+              to="/templates"
               class="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
             >
               <Icon name="heroicons:rectangle-stack" class="w-4 h-4" />
@@ -196,16 +203,24 @@ onMounted(() => {
                 <Icon name="heroicons:home" class="w-4 h-4" />
                 <span>Dashboard</span>
               </NuxtLink>
-              <NuxtLink 
-                to="/resumes" 
+              <NuxtLink
+                to="/resumes"
                 @click="isMobileMenuOpen = false"
                 class="flex items-center space-x-2 px-3 py-2 rounded-md text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
                 <Icon name="heroicons:document-duplicate" class="w-4 h-4" />
                 <span>My Resumes</span>
               </NuxtLink>
-              <NuxtLink 
-                to="/templates" 
+              <NuxtLink
+                to="/cv-editor"
+                @click="isMobileMenuOpen = false"
+                class="flex items-center space-x-2 px-3 py-2 rounded-md text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <Icon name="heroicons:document-text" class="w-4 h-4" />
+                <span>CV Editor</span>
+              </NuxtLink>
+              <NuxtLink
+                to="/templates"
                 @click="isMobileMenuOpen = false"
                 class="flex items-center space-x-2 px-3 py-2 rounded-md text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >

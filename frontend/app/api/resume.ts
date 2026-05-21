@@ -55,4 +55,39 @@ export const resumeApi = {
       headers: getAuthHeaders(),
     })
   },
+
+  /** Create a new generated resume for a profile with the specified template. */
+  async createResume(profileId: string, template: string, title: string): Promise<any> {
+    return await $fetch<any>(getApiUrl('/api/v1/resumes'), {
+      method: 'POST',
+      body: { profile_id: profileId, template_name: template, title },
+      headers: getAuthHeaders(),
+    })
+  },
+
+  /** Get a specific generated resume with all its components and data. */
+  async getResume(resumeUuid: string): Promise<any> {
+    return await $fetch<any>(getApiUrl(`/api/v1/resumes/${resumeUuid}`), {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    })
+  },
+
+  /** Update a generated resume. */
+  async updateResume(resumeUuid: string, data: Record<string, any>): Promise<any> {
+    return await $fetch<any>(getApiUrl(`/api/v1/resumes/${resumeUuid}`), {
+      method: 'PUT',
+      body: data,
+      headers: getAuthHeaders(),
+    })
+  },
+
+  /** Export resume as PDF (returns file download). */
+  async exportPDF(resumeUuid: string): Promise<Blob> {
+    return await $fetch<Blob>(getApiUrl(`/api/v1/resumes/${resumeUuid}/export`), {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      responseType: 'blob',
+    })
+  },
 }

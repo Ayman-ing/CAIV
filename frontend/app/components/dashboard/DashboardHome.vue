@@ -6,7 +6,7 @@ import { useUserStore } from '~/stores/userStore'
 const { user } = useUserStore()
 
 // Navigation methods
-const navigateToSections = () => navigateTo('/profile/sections')
+const navigateToSections = () => navigateTo('/profile')
 const navigateToExtractResume = () => navigateTo('/extract-resume')  
 const navigateToLinkedIn = () => navigateTo('/extract-linkedin')
 </script>
