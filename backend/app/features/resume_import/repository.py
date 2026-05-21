@@ -2,6 +2,7 @@
 Resume Import Repository - Database operations for resume uploads
 """
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, List
 from uuid import UUID
@@ -37,9 +38,11 @@ class ResumeImportRepository:
         return uploaded_resume
 
     async def get_uploaded_resume_by_uuid(self, resume_uuid: UUID) -> Optional[UploadedResume]:
-        """Get uploaded resume by UUID"""
+        """Get uploaded resume by UUID with profile eagerly loaded"""
         result = await self.db.execute(
-            select(UploadedResume).where(UploadedResume.uuid == resume_uuid)
+            select(UploadedResume)
+            .options(selectinload(UploadedResume.profile))
+            .where(UploadedResume.uuid == resume_uuid)
         )
         return result.scalars().first()
 
