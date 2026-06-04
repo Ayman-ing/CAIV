@@ -7,11 +7,21 @@ import { useToast } from '~/composables/useToast'
 
 const route = useRoute()
 const { info, error } = useToast()
-const { state, loadResume, initEmptyEditor, resetState } = useCVEditor()
+const { state, loadResume, loadDraft, initEmptyEditor, resetState } = useCVEditor()
 
 onMounted(async () => {
   const resumeUuid = route.query.resume as string
-  if (resumeUuid) {
+  const draftUuid = route.query.draft as string
+
+  if (draftUuid) {
+    try {
+      await loadDraft(draftUuid)
+      info('Draft loaded', 2000)
+    } catch (err) {
+      console.error('Failed to load draft:', err)
+      error('Failed to load draft', 5000)
+    }
+  } else if (resumeUuid) {
     try {
       await loadResume(resumeUuid)
     } catch (err) {
@@ -25,16 +35,12 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  if (state.previewUrl) {
-    URL.revokeObjectURL(state.previewUrl)
-  }
   resetState()
 })
 </script>
 
 <template>
   <div class="relative w-full h-full min-h-[calc(100vh-4rem)] bg-gray-50 dark:bg-gray-900">
-    <!-- Loading State Overlay -->
     <div
       v-if="state.isLoading"
       class="absolute inset-0 z-10 flex items-center justify-center bg-white/80 dark:bg-gray-900/80"
@@ -45,7 +51,6 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- Error State Overlay -->
     <div
       v-else-if="state.error"
       class="absolute inset-0 z-10 flex items-center justify-center bg-white/80 dark:bg-gray-900/80"
@@ -62,7 +67,6 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- CV Editor Layout (always visible when not loading/error) -->
     <div v-if="!state.isLoading && !state.error" class="h-full">
       <CVEditorLayout />
     </div>

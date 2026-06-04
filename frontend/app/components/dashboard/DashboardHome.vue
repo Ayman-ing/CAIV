@@ -92,11 +92,19 @@ const navigateToLinkedIn = () => navigateTo('/extract-linkedin')
 
             <!-- Recent Resumes -->
           <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-300 dark:border-gray-700 p-6">
-            <div class="flex items-center mb-6">
-              <div class="flex-shrink-0 w-8 h-8 bg-green-500 dark:bg-green-400 text-white rounded-full flex items-center justify-center font-semibold">
-                3
+            <div class="flex items-center justify-between mb-6">
+              <div class="flex items-center">
+                <div class="flex-shrink-0 w-8 h-8 bg-green-500 dark:bg-green-400 text-white rounded-full flex items-center justify-center font-semibold">
+                  3
+                </div>
+                <h2 class="ml-4 text-2xl font-semibold text-gray-900 dark:text-gray-100">View Created Resumes</h2>
               </div>
-              <h2 class="ml-4 text-2xl font-semibold text-gray-900 dark:text-gray-100">View Generated Resume</h2>
+              <NuxtLink
+                to="/resumes"
+                class="text-sm text-blue-600 dark:text-blue-400 hover:underline font-medium"
+              >
+                Show All
+              </NuxtLink>
             </div>
             <ResumePreviewCard />
           </div>

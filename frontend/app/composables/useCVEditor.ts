@@ -1,7 +1,9 @@
 import { computed, reactive } from 'vue'
 import { resumeService } from '~/services/resumeService'
+import { resumeDraftService } from '~/services/resumeDraftService'
 import { useToast } from '~/composables/useToast'
 import { useProfileStore } from '~/stores/profileStore'
+import type { WorkExperience, Education, Skill, Project, Certificate, Language, ProfileLink, CustomSection } from '~/types/profile'
 
 export interface ResumeComponent {
   uuid: string
@@ -19,14 +21,34 @@ export interface GeneratedResume {
   [key: string]: unknown
 }
 
+export interface ProfileData {
+  basicInfo: {
+    name: string
+    email: string
+    phone: string
+    location: string
+  }
+  summary: string
+  workExperiences: WorkExperience[]
+  education: Education[]
+  skills: Skill[]
+  projects: Project[]
+  certificates: Certificate[]
+  languages: Language[]
+  customSections: CustomSection[]
+  links: ProfileLink[]
+  skillUseCategories: boolean
+}
+
 export interface CVEditorState {
   currentResume: GeneratedResume | null
   selectedTemplate: string
   components: ResumeComponent[]
+  profileData: ProfileData
+  draftUuid: string | null
+  draftTitle: string | null
   isLoading: boolean
   isSaving: boolean
-  isGenerating: boolean
-  previewUrl: string | null
   error: string | null
   sidebarWidths: {
     left: number
@@ -34,23 +56,53 @@ export interface CVEditorState {
   }
 }
 
+const emptyProfileData = (): ProfileData => ({
+  basicInfo: { name: '', email: '', phone: '', location: '' },
+  summary: '',
+  workExperiences: [],
+  education: [],
+  skills: [],
+  projects: [],
+  certificates: [],
+  languages: [],
+  customSections: [],
+  links: [],
+  skillUseCategories: false,
+})
+
+const allSectionTypes = [
+  'professional_summary', 'work_experience', 'education', 'skills',
+  'projects', 'certificates', 'languages', 'custom_sections',
+]
+
+function populateComponents(): ResumeComponent[] {
+  return allSectionTypes.map((type, i) => ({
+    uuid: crypto.randomUUID() as string,
+    component_type: type,
+    component_id: 0,
+    is_included: true,
+    order_index: i,
+  }))
+}
+
+const state = reactive<CVEditorState>({
+  currentResume: null,
+  selectedTemplate: 'CANADIAN',
+  components: populateComponents(),
+  profileData: emptyProfileData(),
+  draftUuid: null,
+  draftTitle: null,
+  isLoading: false,
+  isSaving: false,
+  error: null,
+  sidebarWidths: {
+    left: 320,
+    right: 320,
+  },
+})
+
 export function useCVEditor() {
   const { error: toastError } = useToast()
-
-  const state = reactive<CVEditorState>({
-    currentResume: null,
-    selectedTemplate: 'MODERN',
-    components: [],
-    isLoading: false,
-    isSaving: false,
-    isGenerating: false,
-    previewUrl: null,
-    error: null,
-    sidebarWidths: {
-      left: 320,
-      right: 320,
-    },
-  })
 
   const hasChanges = computed(() => {
     if (!state.currentResume) return false
@@ -59,20 +111,8 @@ export function useCVEditor() {
 
   const hasResume = computed(() => !!state.currentResume)
 
-  const availableTemplates = computed(() => [
-    { label: 'Modern', value: 'MODERN' },
-    { label: 'Classic', value: 'CLASSIC' },
-    { label: 'Creative', value: 'CREATIVE' },
-    { label: 'Minimal', value: 'MINIMAL' },
-    { label: 'Professional', value: 'PROFESSIONAL' },
-  ])
-
   const includedComponents = computed(() =>
-    state.components.filter(c => c.is_included).sort((a, b) => a.order_index - b.order_index)
-  )
-
-  const excludedComponents = computed(() =>
-    state.components.filter(c => !c.is_included)
+    [...state.components].sort((a, b) => a.order_index - b.order_index)
   )
 
   async function loadResume(resumeUuid: string): Promise<void> {
@@ -81,7 +121,6 @@ export function useCVEditor() {
     try {
       const resume = await resumeService.getResume(resumeUuid)
       state.currentResume = resume
-      state.selectedTemplate = resume.template_name || 'MODERN'
       state.components = resume.components || []
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load resume'
@@ -94,26 +133,25 @@ export function useCVEditor() {
 
   function initEmptyEditor(): void {
     state.currentResume = null
-    state.selectedTemplate = 'MODERN'
-    state.components = []
+    state.selectedTemplate = 'CANADIAN'
+    state.components = populateComponents()
+    state.profileData = emptyProfileData()
+    state.draftUuid = null
+    state.draftTitle = null
     state.isLoading = false
     state.error = null
     state.isSaving = false
-    state.isGenerating = false
-    state.previewUrl = null
   }
 
   async function createNewResume(
     profileId: string,
-    template: string = 'MODERN',
     title: string = 'My Resume'
   ): Promise<GeneratedResume> {
     state.isSaving = true
     state.error = null
     try {
-      const resume = await resumeService.createResume(profileId, template, title)
+      const resume = await resumeService.createResume(profileId, 'CANADIAN', title)
       state.currentResume = resume
-      state.selectedTemplate = resume.template_name || template
       state.components = resume.components || []
       return resume
     } catch (err) {
@@ -126,29 +164,17 @@ export function useCVEditor() {
     }
   }
 
-  function updateTemplate(template: string): void {
-    state.selectedTemplate = template
+  function addCustomSection(data: { title: string; content: string }): void {
+    state.profileData.customSections.push({
+      uuid: crypto.randomUUID() as string,
+      title: data.title,
+      content: data.content,
+    })
   }
 
-  function toggleComponent(componentUuid: string): void {
-    const component = state.components.find(c => c.uuid === componentUuid)
-    if (component) {
-      component.is_included = !component.is_included
-    }
-  }
-
-  function includeComponent(componentUuid: string): void {
-    const component = state.components.find(c => c.uuid === componentUuid)
-    if (component) {
-      component.is_included = true
-    }
-  }
-
-  function excludeComponent(componentUuid: string): void {
-    const component = state.components.find(c => c.uuid === componentUuid)
-    if (component) {
-      component.is_included = false
-    }
+  function removeCustomSection(uuid: string): void {
+    const idx = state.profileData.customSections.findIndex(s => s.uuid === uuid)
+    if (idx !== -1) state.profileData.customSections.splice(idx, 1)
   }
 
   function reorderComponents(newOrder: ResumeComponent[]): void {
@@ -158,18 +184,226 @@ export function useCVEditor() {
     state.components = newOrder
   }
 
-  async function refreshPreview(): Promise<void> {
-    if (!state.currentResume) return
-    state.isGenerating = true
+  function updateProfileData(data: Partial<ProfileData>): void {
+    Object.assign(state.profileData, data)
+  }
+
+  function updateBasicInfo(field: keyof ProfileData['basicInfo'], value: string): void {
+    state.profileData.basicInfo[field] = value
+  }
+
+  function updateSummary(content: string): void {
+    state.profileData.summary = content
+  }
+
+  function ensureComponentType(type: string): void {
+    if (!state.components.some(c => c.component_type === type)) {
+      state.components.push({
+        uuid: crypto.randomUUID(),
+        component_type: type,
+        component_id: 0,
+        is_included: true,
+        order_index: state.components.length,
+      })
+    }
+  }
+
+  function addWorkExperience(data: { job_title: string; company?: string; start_date?: string; end_date?: string; description?: string }): void {
+    ensureComponentType('work_experience')
+    state.profileData.workExperiences.push({
+      uuid: crypto.randomUUID(),
+      job_title: data.job_title,
+      company: data.company || '',
+      start_date: data.start_date || '',
+      end_date: data.end_date || null,
+      description: data.description || null,
+    })
+  }
+
+  function removeWorkExperience(uuid: string): void {
+    const idx = state.profileData.workExperiences.findIndex(e => e.uuid === uuid)
+    if (idx !== -1) state.profileData.workExperiences.splice(idx, 1)
+  }
+
+  function addEducation(data: { institution: string; degree: string; field_of_study?: string; start_date?: string; end_date?: string; description?: string }): void {
+    ensureComponentType('education')
+    state.profileData.education.push({
+      uuid: crypto.randomUUID() as string,
+      institution: data.institution,
+      degree: data.degree,
+      field_of_study: data.field_of_study || null,
+      start_date: data.start_date || '',
+      end_date: data.end_date || null,
+      description: data.description || null,
+      gpa: null,
+    } as Education)
+  }
+
+  function removeEducation(uuid: string): void {
+    const idx = state.profileData.education.findIndex(e => e.uuid === uuid)
+    if (idx !== -1) state.profileData.education.splice(idx, 1)
+  }
+
+  function addSkill(data: { name: string; category?: string; proficiency?: string }): void {
+    ensureComponentType('skills')
+    state.profileData.skills.push({
+      uuid: crypto.randomUUID(),
+      name: data.name,
+      category: data.category || null,
+      proficiency: data.proficiency || null,
+    })
+  }
+
+  function removeSkill(uuid: string): void {
+    const idx = state.profileData.skills.findIndex(s => s.uuid === uuid)
+    if (idx !== -1) state.profileData.skills.splice(idx, 1)
+  }
+
+  function addProject(data: { name: string; description?: string; technologies?: string; start_date?: string; end_date?: string }): void {
+    ensureComponentType('projects')
+    state.profileData.projects.push({
+      uuid: crypto.randomUUID(),
+      name: data.name,
+      description: data.description || null,
+      technologies: data.technologies || null,
+      start_date: data.start_date || '',
+      end_date: data.end_date || null,
+      url: null,
+    })
+  }
+
+  function removeProject(uuid: string): void {
+    const idx = state.profileData.projects.findIndex(p => p.uuid === uuid)
+    if (idx !== -1) state.profileData.projects.splice(idx, 1)
+  }
+
+  function addCertificate(data: { name: string; issuing_organization: string; issue_date?: string }): void {
+    ensureComponentType('certificates')
+    state.profileData.certificates.push({
+      uuid: crypto.randomUUID(),
+      name: data.name,
+      issuing_organization: data.issuing_organization,
+      issue_date: data.issue_date || '',
+      expiration_date: null,
+      credential_id: null,
+    })
+  }
+
+  function removeCertificate(uuid: string): void {
+    const idx = state.profileData.certificates.findIndex(c => c.uuid === uuid)
+    if (idx !== -1) state.profileData.certificates.splice(idx, 1)
+  }
+
+  function addLanguage(data: { language: string; proficiency: string }): void {
+    ensureComponentType('languages')
+    state.profileData.languages.push({
+      uuid: crypto.randomUUID(),
+      language: data.language,
+      proficiency: data.proficiency,
+    })
+  }
+
+  function removeLanguage(uuid: string): void {
+    const idx = state.profileData.languages.findIndex(l => l.uuid === uuid)
+    if (idx !== -1) state.profileData.languages.splice(idx, 1)
+  }
+
+  function addLink(link: ProfileLink): void {
+    state.profileData.links.push(link)
+  }
+
+  function removeLink(uuid: string): void {
+    const idx = state.profileData.links.findIndex(l => l.uuid === uuid)
+    if (idx !== -1) state.profileData.links.splice(idx, 1)
+  }
+
+  function updateLink(uuid: string, data: Partial<ProfileLink>): void {
+    const link = state.profileData.links.find(l => l.uuid === uuid)
+    if (link) Object.assign(link, data)
+  }
+
+  async function saveCurrentDraft(title?: string): Promise<void> {
+    const profileStore = useProfileStore()
+    const profileId = profileStore.activeProfile.value?.uuid
+    if (!profileId) {
+      toastError('No active profile', 3000)
+      return
+    }
+    state.isSaving = true
     try {
-      const previewUrl = await resumeService.getPDFPreview(state.currentResume.uuid)
-      state.previewUrl = previewUrl
+      const draftTitle = title || state.draftTitle || 'Untitled Draft'
+      const result = await resumeDraftService.saveDraft(
+        profileId,
+        state.draftUuid,
+        draftTitle,
+        {
+          components: state.components,
+          profileData: state.profileData,
+          selectedTemplate: state.selectedTemplate,
+        }
+      )
+      state.draftUuid = result.uuid
+      state.draftTitle = result.title
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to generate preview'
-      state.error = message
+      const message = err instanceof Error ? err.message : 'Failed to save draft'
       toastError(message, 5000)
+      throw err
     } finally {
-      state.isGenerating = false
+      state.isSaving = false
+    }
+  }
+
+  async function loadDraft(draftUuid: string): Promise<void> {
+    const profileStore = useProfileStore()
+    const profileId = profileStore.activeProfile.value?.uuid
+    if (!profileId) {
+      toastError('No active profile', 3000)
+      return
+    }
+    state.isLoading = true
+    try {
+      const data = await resumeDraftService.loadDraft(profileId, draftUuid)
+      state.components = data.components.length > 0
+        ? data.components
+        : populateComponents()
+      state.profileData = { ...emptyProfileData(), ...data.profileData }
+      state.selectedTemplate = data.selectedTemplate
+      state.draftUuid = draftUuid
+      state.draftTitle = data.title
+      state.currentResume = null
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load draft'
+      toastError(message, 5000)
+      throw err
+    } finally {
+      state.isLoading = false
+    }
+  }
+
+  async function listDrafts(): Promise<any[]> {
+    const profileStore = useProfileStore()
+    const profileId = profileStore.activeProfile.value?.uuid
+    if (!profileId) return []
+    try {
+      return await resumeDraftService.listDrafts(profileId)
+    } catch {
+      return []
+    }
+  }
+
+  async function deleteDraft(draftUuid: string): Promise<void> {
+    const profileStore = useProfileStore()
+    const profileId = profileStore.activeProfile.value?.uuid
+    if (!profileId) return
+    try {
+      await resumeDraftService.deleteDraft(profileId, draftUuid)
+      if (state.draftUuid === draftUuid) {
+        state.draftUuid = null
+        state.draftTitle = null
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to delete draft'
+      toastError(message, 5000)
     }
   }
 
@@ -196,16 +430,13 @@ export function useCVEditor() {
         }
         const resume = await resumeService.createResume(
           profileId,
-          state.selectedTemplate,
+          'CANADIAN',
           'My Resume'
         )
         state.currentResume = resume
         state.components = resume.components || []
       } else {
-        const updateData: Record<string, unknown> = {
-          template_name: state.selectedTemplate,
-        }
-        const updated = await resumeService.updateResume(state.currentResume.uuid, updateData)
+        const updated = await resumeService.updateResume(state.currentResume.uuid, {})
         state.currentResume = updated
       }
     } catch (err) {
@@ -225,12 +456,13 @@ export function useCVEditor() {
 
   function resetState(): void {
     state.currentResume = null
-    state.selectedTemplate = 'MODERN'
-    state.components = []
+    state.selectedTemplate = 'CANADIAN'
+    state.components = populateComponents()
+    state.profileData = emptyProfileData()
+    state.draftUuid = null
+    state.draftTitle = null
     state.isLoading = false
     state.isSaving = false
-    state.isGenerating = false
-    state.previewUrl = null
     state.error = null
   }
 
@@ -238,18 +470,35 @@ export function useCVEditor() {
     state,
     hasChanges,
     hasResume,
-    availableTemplates,
     includedComponents,
-    excludedComponents,
     loadResume,
     initEmptyEditor,
     createNewResume,
-    updateTemplate,
-    toggleComponent,
-    includeComponent,
-    excludeComponent,
     reorderComponents,
-    refreshPreview,
+    updateProfileData,
+    updateBasicInfo,
+    updateSummary,
+    addWorkExperience,
+    removeWorkExperience,
+    addEducation,
+    removeEducation,
+    addSkill,
+    removeSkill,
+    addProject,
+    removeProject,
+    addCertificate,
+    removeCertificate,
+    addLanguage,
+    removeLanguage,
+    addLink,
+    removeLink,
+    updateLink,
+    addCustomSection,
+    removeCustomSection,
+    saveCurrentDraft,
+    loadDraft,
+    listDrafts,
+    deleteDraft,
     exportPDF,
     saveResume,
     updateSidebarWidth,

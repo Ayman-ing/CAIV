@@ -2,207 +2,167 @@
 import { ref } from 'vue'
 import { useCVEditor } from '~/composables/useCVEditor'
 import { useToast } from '~/composables/useToast'
-import { useProfileStore } from '~/stores/profileStore'
 
 const {
   state,
-  hasResume,
-  availableTemplates,
-  updateTemplate,
-  refreshPreview,
+  updateBasicInfo,
+  addLink,
+  removeLink,
   exportPDF,
-  saveResume,
-  createNewResume
 } = useCVEditor()
-const { success, error } = useToast()
-const { activeProfile, profiles } = useProfileStore()
+const { error } = useToast()
 
-const isCreatingResume = ref(false)
-const isSavingResume = ref(false)
 const isExporting = ref(false)
 
-// Handle template change
-const handleTemplateChange = (newTemplate: string) => {
-  updateTemplate(newTemplate)
-}
+const newLinkUrl = ref('')
+const newLinkLabel = ref('')
+const showAddLink = ref(false)
 
-// Handle refresh preview
-const handleRefreshPreview = async () => {
-  try {
-    await refreshPreview()
-  } catch {
-    error('Failed to refresh preview', 3000)
-  }
-}
-
-// Handle create resume
-const handleCreateResume = async () => {
-  isCreatingResume.value = true
-  try {
-    const profileId = activeProfile.value?.uuid || profiles.value[0]?.uuid
-    if (!profileId) {
-      error('No profile available. Please create a profile first.', 5000)
-      return
-    }
-    await createNewResume(profileId, state.selectedTemplate, 'My Resume')
-    success('Resume created successfully', 3000)
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to create resume'
-    error(message, 3000)
-  } finally {
-    isCreatingResume.value = false
-  }
-}
-
-// Handle save resume
-const handleSaveResume = async () => {
-  isSavingResume.value = true
-  try {
-    await saveResume()
-    success('Resume saved successfully', 3000)
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to save resume'
-    error(message, 3000)
-  } finally {
-    isSavingResume.value = false
-  }
-}
-
-// Handle export PDF
 const handleExportPDF = async () => {
   isExporting.value = true
   try {
     await exportPDF()
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to export PDF'
-    error(message, 3000)
+  } catch {
+    error('Failed to export PDF', 3000)
   } finally {
     isExporting.value = false
   }
+}
+
+const handleAddLink = () => {
+  if (!newLinkUrl.value.trim()) return
+  addLink({
+    uuid: crypto.randomUUID(),
+    label: newLinkLabel.value.trim() || newLinkUrl.value,
+    url: newLinkUrl.value.trim(),
+    platform: 'other',
+    is_visible: true,
+  })
+  newLinkUrl.value = ''
+  newLinkLabel.value = ''
+  showAddLink.value = false
 }
 </script>
 
 <template>
   <div class="flex flex-col h-full">
-    <!-- Header -->
     <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
       <h3 class="font-semibold text-gray-900 dark:text-gray-100 flex items-center space-x-2">
         <Icon name="heroicons:cog-6-tooth" class="w-5 h-5" />
-        <span>Export & Settings</span>
+        <span>Settings</span>
       </h3>
     </div>
 
-    <!-- Content -->
     <div class="flex-1 overflow-y-auto">
-      <!-- Template Selector -->
-      <div class="px-4 py-4 border-b border-gray-200 dark:border-gray-700">
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          <Icon name="heroicons:document-text" class="w-4 h-4 inline mr-1" />
-          Template
-        </label>
-        <select
-          :value="state.selectedTemplate"
-          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          @change="handleTemplateChange(($event.target as HTMLSelectElement).value)"
-        >
-          <option v-for="template in availableTemplates" :key="template.value" :value="template.value">
-            {{ template.label }}
-          </option>
-        </select>
+      <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between text-sm">
+          <span class="text-gray-600 dark:text-gray-400">Template</span>
+          <span class="font-medium text-gray-900 dark:text-gray-100">Classic Canadian</span>
+        </div>
       </div>
 
-      <!-- Resume Title (if editable) -->
       <div class="px-4 py-4 border-b border-gray-200 dark:border-gray-700">
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          <Icon name="heroicons:pencil" class="w-4 h-4 inline mr-1" />
-          Resume Title
+          <Icon name="heroicons:user" class="w-4 h-4 inline mr-1" />
+          Basic Info
         </label>
-        <input
-          type="text"
-          :value="state.currentResume?.title || 'Untitled Resume'"
-          placeholder="Enter resume title"
-          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          readonly
-        >
-      </div>
-
-      <!-- Summary Stats -->
-      <div v-if="hasResume" class="px-4 py-4 border-b border-gray-200 dark:border-gray-700">
-        <h4 class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-3">
-          Resume Stats
-        </h4>
         <div class="space-y-2">
-          <div class="flex justify-between items-center text-sm">
-            <span class="text-gray-600 dark:text-gray-400">Total Sections</span>
-            <span class="font-semibold text-gray-900 dark:text-gray-100">{{ state.components.length }}</span>
+          <input
+            :value="state.profileData.basicInfo.name"
+            placeholder="Full Name"
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            @input="updateBasicInfo('name', ($event.target as HTMLInputElement).value)"
+          >
+          <input
+            :value="state.profileData.basicInfo.email"
+            placeholder="Email"
+            type="email"
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            @input="updateBasicInfo('email', ($event.target as HTMLInputElement).value)"
+          >
+          <input
+            :value="state.profileData.basicInfo.phone"
+            placeholder="Phone"
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            @input="updateBasicInfo('phone', ($event.target as HTMLInputElement).value)"
+          >
+          <input
+            :value="state.profileData.basicInfo.location"
+            placeholder="Location"
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            @input="updateBasicInfo('location', ($event.target as HTMLInputElement).value)"
+          >
+        </div>
+      </div>
+
+      <div class="px-4 py-4 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between mb-2">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <Icon name="heroicons:link" class="w-4 h-4 inline mr-1" />
+            Links
+          </label>
+          <button
+            class="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+            @click="showAddLink = !showAddLink"
+          >
+            + Add
+          </button>
+        </div>
+        <div v-if="showAddLink" class="space-y-2 mb-3 p-2 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
+          <input
+            v-model="newLinkLabel"
+            placeholder="Label (e.g. Portfolio)"
+            class="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+          <input
+            v-model="newLinkUrl"
+            placeholder="URL (e.g. https://...)"
+            class="w-full px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+          <div class="flex space-x-2">
+            <button
+              class="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+              @click="handleAddLink"
+            >
+              Add
+            </button>
+            <button
+              class="px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:underline"
+              @click="showAddLink = false"
+            >
+              Cancel
+            </button>
           </div>
-          <div class="flex justify-between items-center text-sm">
-            <span class="text-gray-600 dark:text-gray-400">Included</span>
-            <span class="font-semibold text-blue-600 dark:text-blue-400">
-              {{ state.components.filter(c => c.is_included).length }}
-            </span>
-          </div>
-          <div class="flex justify-between items-center text-sm">
-            <span class="text-gray-600 dark:text-gray-400">Template</span>
-            <span class="font-semibold text-gray-900 dark:text-gray-100 capitalize">
-              {{ state.selectedTemplate.toLowerCase() }}
-            </span>
+        </div>
+        <div class="space-y-1">
+          <div
+            v-for="link in state.profileData.links"
+            :key="link.uuid"
+            class="flex items-center justify-between text-sm py-1"
+          >
+            <div class="flex items-center space-x-2 min-w-0 flex-1">
+              <span class="text-gray-600 dark:text-gray-400 text-xs truncate">
+                {{ link.label }}
+              </span>
+              <span class="text-gray-400 text-xs truncate hidden sm:inline">
+                {{ link.url }}
+              </span>
+            </div>
+            <button
+              class="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 flex-shrink-0"
+              title="Remove link"
+              @click="removeLink(link.uuid)"
+            >
+              <Icon name="heroicons:x-mark" class="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>
 
-      <!-- Action Buttons -->
-      <div class="px-4 py-4 space-y-3">
-        <!-- Create Resume Button (when no resume loaded) -->
+      <div class="px-4 py-4 border-b border-gray-200 dark:border-gray-700">
         <button
-          v-if="!hasResume"
-          :disabled="isCreatingResume"
-          class="w-full inline-flex items-center justify-center space-x-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          @click="handleCreateResume"
-        >
-          <Icon
-            :name="isCreatingResume ? 'heroicons:arrow-path' : 'heroicons:plus-circle'"
-            :class="isCreatingResume ? 'animate-spin' : ''"
-            class="w-4 h-4"
-          />
-          <span>{{ isCreatingResume ? 'Creating...' : 'Create Resume' }}</span>
-        </button>
-
-        <!-- Refresh Preview Button (when resume loaded) -->
-        <button
-          v-if="hasResume"
-          :disabled="state.isGenerating"
-          class="w-full inline-flex items-center justify-center space-x-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          @click="handleRefreshPreview"
-        >
-          <Icon
-            :name="state.isGenerating ? 'heroicons:arrow-path' : 'heroicons:arrow-clockwise'"
-            :class="state.isGenerating ? 'animate-spin' : ''"
-            class="w-4 h-4"
-          />
-          <span>{{ state.isGenerating ? 'Generating...' : 'Refresh Preview' }}</span>
-        </button>
-
-        <!-- Save Resume Button -->
-        <button
-          v-if="hasResume"
-          :disabled="isSavingResume || state.isSaving"
-          class="w-full inline-flex items-center justify-center space-x-2 px-4 py-2.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          @click="handleSaveResume"
-        >
-          <Icon
-            :name="isSavingResume ? 'heroicons:arrow-path' : 'heroicons:check'"
-            :class="isSavingResume ? 'animate-spin' : ''"
-            class="w-4 h-4"
-          />
-          <span>{{ isSavingResume ? 'Saving...' : 'Save Resume' }}</span>
-        </button>
-
-        <!-- Export PDF Button -->
-        <button
-          v-if="hasResume"
-          :disabled="isExporting || !state.previewUrl"
           class="w-full inline-flex items-center justify-center space-x-2 px-4 py-2.5 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          :disabled="isExporting"
           @click="handleExportPDF"
         >
           <Icon
@@ -214,14 +174,13 @@ const handleExportPDF = async () => {
         </button>
       </div>
 
-      <!-- Help Text -->
-      <div class="px-4 py-4 text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/30 mx-2 rounded-lg">
+      <div class="px-4 py-4 text-xs text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/30 mx-2 rounded-lg mb-4">
         <p class="font-medium mb-1">Tips:</p>
         <ul class="list-disc list-inside space-y-1">
-          <li>Click "Refresh Preview" after making changes</li>
-          <li>Use the left sidebar to include/exclude sections</li>
-          <li>Select a template to change the resume layout</li>
-          <li>Click "Export as PDF" to download your resume</li>
+          <li>Edit fields above — changes appear instantly on the paper</li>
+          <li>Use the left sidebar to reorder sections</li>
+          <li>Collapse sections you're not working on</li>
+          <li>Save drafts frequently to avoid losing work</li>
         </ul>
       </div>
     </div>
