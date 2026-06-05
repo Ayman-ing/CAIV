@@ -29,6 +29,9 @@ class Embedding(Base):
     model_name = Column(String(100))  # Which embedding model was used (default: all-MiniLM-L6-v2)
     model_version = Column(String(50))  # Model version for tracking
     
+    # Content hash for change detection (SHA-256 of source text)
+    content_hash = Column(String(64), nullable=True)  # Hex digest of source text
+
     # Additional metadata as JSON
     metadata_json = Column(Text)  # Any other metadata as JSON
     

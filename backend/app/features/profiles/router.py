@@ -17,6 +17,7 @@ from features.profiles.repository import ProfileRepository
 from features.profiles.service import ProfileService
 from features.profiles.schemas import ProfileCreate, ProfileUpdate, ProfileResponse
 from features.vector_embeddings.tasks import index_profile_task
+from core.redis_client import acquire_lock_async, release_lock_async
 
 logger = logging.getLogger(__name__)
 
@@ -143,28 +144,32 @@ async def index_profile(
     """
     Trigger embedding generation and indexing for a profile.
     
-    This endpoint starts an async task to generate embeddings for all profile items
-    (work experiences, projects, skills, education, languages, certificates, etc.)
-    and stores them in the vector database (pgvector).
+    Uses a Redis distributed lock to prevent concurrent indexing of the same profile.
+    Only changed entities (content_hash mismatch) are re-embedded.
     
     Returns a task ID that can be used to poll for status.
     """
-    # Verify user owns this profile
     if str(current_user.uuid) != user_uuid:
         raise HTTPException(status_code=403, message="Cannot index another user's profile")
-    
+
     if not await service.check_profile_ownership(profile_uuid, current_user.id):
         raise HTTPException(status_code=403, message="Cannot index another user's profile")
-    
-    # Verify profile exists
+
     profile = await service.get_profile_by_uuid(profile_uuid)
     if not profile:
         raise HTTPException(status_code=404, message="Profile not found")
-    
+
     try:
-        # Trigger async indexing task
+        locked = await acquire_lock_async(profile_uuid, "pending")
+        if not locked:
+            logger.warning(f"Concurrent indexing rejected for profile {profile_uuid}")
+            raise HTTPException(
+                status_code=409,
+                message="Indexing already in progress for this profile"
+            )
+
         task = index_profile_task.delay(profile_uuid)
-        
+
         logger.info(
             f"Indexing triggered for profile {profile_uuid} "
             f"(user {user_uuid}) → task_id={task.id}"
@@ -175,6 +180,9 @@ async def index_profile(
             profile_uuid=profile_uuid,
             status="pending"
         )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to start indexing for profile {profile_uuid}: {str(e)}")
+        await release_lock_async(profile_uuid)
         raise HTTPException(status_code=500, message=f"Failed to start indexing: {str(e)}")

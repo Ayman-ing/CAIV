@@ -1,21 +1,19 @@
 """
 Vector Embedding Feature
 
-Schema-only implementation for vector embeddings used in AI similarity matching.
+Embedding generation, storage (pgvector), and indexing for AI similarity matching.
 """
 
 from .schemas import (
-    VectorEmbeddingBase,
-    VectorEmbeddingCreate,
-    VectorEmbeddingUpdate,
-    VectorEmbeddingResponse,
-    EmbeddingEntityType,
+    EmbeddingCreate,
+    EmbeddingUpdate,
+    EmbeddingResponse,
+    IndexingTaskResponse,
 )
 
 __all__ = [
-    "VectorEmbeddingBase",
-    "VectorEmbeddingCreate", 
-    "VectorEmbeddingUpdate",
-    "VectorEmbeddingResponse",
-    "EmbeddingEntityType",
+    "EmbeddingCreate",
+    "EmbeddingUpdate",
+    "EmbeddingResponse",
+    "IndexingTaskResponse",
 ]
