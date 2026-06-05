@@ -61,6 +61,11 @@ class Settings(BaseSettings):
         env="EMBEDDING_DIMENSION",
         description="Dimension of embeddings (384 for all-MiniLM-L6-v2)",
     )
+    EMBEDDING_BATCH_SIZE: int = Field(
+        default=10,
+        env="EMBEDDING_BATCH_SIZE",
+        description="Number of texts to embed in a single batch call",
+    )
 
     # Redis & Celery
     REDIS_URL: str = Field(
