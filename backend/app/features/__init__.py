@@ -7,7 +7,7 @@ from .profiles.skills import router as skills_router
 from .profiles.education import router as education_router
 from .profiles.certificates import router as certificates_router
 from .profiles.languages import language_router
-from .resumes import resume_router
+from .resumes import resume_router, resume_drafts_router
 from .profiles import profile_router
 from .profiles.custom_sections import custom_section_router
 from .profiles.profile_links import profile_link_router
@@ -28,6 +28,7 @@ feature_routers = [
     certificates_router,
     language_router,
     resume_router,
+    resume_drafts_router,
     profile_router,
     custom_section_router,
     profile_link_router,

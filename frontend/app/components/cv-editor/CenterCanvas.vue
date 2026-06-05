@@ -1,92 +1,82 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useCVEditor } from '~/composables/useCVEditor'
 import { useToast } from '~/composables/useToast'
+import PaperPreview from './PaperPreview.vue'
+import SaveDraftModal from './SaveDraftModal.vue'
 
-const { state, hasResume, refreshPreview } = useCVEditor()
+const { state, saveCurrentDraft } = useCVEditor()
 const { success, error } = useToast()
 
-const isRefreshing = ref(false)
+const showSaveModal = ref(false)
+const isSaving = ref(false)
 
-const handleRefresh = async () => {
-  if (!hasResume.value) return
-  isRefreshing.value = true
+const handleSave = async () => {
+  if (state.isSaving) return
+
+  if (!state.draftUuid) {
+    showSaveModal.value = true
+    return
+  }
+
+  isSaving.value = true
   try {
-    await refreshPreview()
-    success('Preview updated', 2000)
+    await saveCurrentDraft()
+    success('Draft saved', 2000)
   } catch {
-    error('Failed to refresh preview', 3000)
+    error('Failed to save draft', 3000)
   } finally {
-    isRefreshing.value = false
+    isSaving.value = false
   }
 }
 
-const showNoResume = computed(() => !hasResume.value)
-const showPlaceholder = computed(() => hasResume.value && !state.previewUrl && !state.isGenerating)
-const showLoading = computed(() => state.isGenerating)
+const handleSaveWithTitle = async (title: string) => {
+  showSaveModal.value = false
+  isSaving.value = true
+  try {
+    await saveCurrentDraft(title)
+    success('Draft saved', 2000)
+  } catch {
+    error('Failed to save draft', 3000)
+  } finally {
+    isSaving.value = false
+  }
+}
 </script>
 
 <template>
-  <div class="flex flex-col h-full bg-gray-100 dark:bg-gray-900">
-    <!-- Header with Preview Controls -->
+  <div class="flex flex-col h-full">
     <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between">
       <h3 class="font-semibold text-gray-900 dark:text-gray-100 flex items-center space-x-2">
         <Icon name="heroicons:document-magnifying-glass" class="w-5 h-5" />
         <span>Preview</span>
       </h3>
-      <button
-        :disabled="isRefreshing || state.isGenerating"
-        class="inline-flex items-center space-x-2 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        @click="handleRefresh"
-      >
-        <Icon
-          :name="isRefreshing ? 'heroicons:arrow-path' : 'heroicons:arrow-clockwise'"
-          :class="{ 'animate-spin': isRefreshing }"
-          class="w-4 h-4"
-        />
-        <span>Refresh</span>
-      </button>
-    </div>
-
-    <!-- Preview Area -->
-    <div class="flex-1 overflow-auto p-4">
-      <!-- No Resume -->
-      <div v-if="showNoResume" class="flex flex-col items-center justify-center h-full text-center">
-        <Icon name="heroicons:document-plus" class="w-16 h-16 text-gray-300 dark:text-gray-600 mb-4" />
-        <p class="text-gray-700 dark:text-gray-300 text-lg font-medium mb-2">
-          No Resume Loaded
-        </p>
-        <p class="text-gray-500 dark:text-gray-400 mb-4 max-w-md">
-          Create a new resume or select an existing one to start editing.
-        </p>
-      </div>
-
-      <!-- Placeholder -->
-      <div v-else-if="showPlaceholder" class="flex flex-col items-center justify-center h-full text-center">
-        <Icon name="heroicons:document-text" class="w-16 h-16 text-gray-300 dark:text-gray-600 mb-4" />
-        <p class="text-gray-600 dark:text-gray-400 mb-4">
-          Click "Refresh" to generate a PDF preview
-        </p>
-        <p class="text-sm text-gray-500 dark:text-gray-500">
-          The preview will update as you make changes
-        </p>
-      </div>
-
-      <!-- Loading -->
-      <div v-else-if="showLoading" class="flex flex-col items-center justify-center h-full">
-        <Icon name="heroicons:arrow-path" class="w-12 h-12 text-blue-400 animate-spin mb-4" />
-        <p class="text-gray-600 dark:text-gray-400">Generating preview...</p>
-      </div>
-
-      <!-- PDF Preview -->
-      <div v-else class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
-        <iframe
-          v-if="state.previewUrl"
-          :src="state.previewUrl"
-          class="w-full h-full min-h-[600px]"
-          title="Resume PDF Preview"
-        />
+      <div class="flex items-center space-x-2">
+        <span v-if="state.draftTitle" class="text-xs text-gray-500 dark:text-gray-400 mr-2 truncate max-w-[120px]">
+          {{ state.draftTitle }}
+        </span>
+        <button
+          :disabled="isSaving || state.isSaving"
+          class="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          @click="handleSave"
+        >
+          <Icon
+            :name="isSaving ? 'heroicons:arrow-path' : 'heroicons:document'"
+            :class="isSaving ? 'animate-spin' : ''"
+            class="w-3.5 h-3.5"
+          />
+          <span>{{ isSaving ? 'Saving...' : 'Save Draft' }}</span>
+        </button>
       </div>
     </div>
+    <div class="flex-1 overflow-hidden">
+      <PaperPreview />
+    </div>
+    <SaveDraftModal
+      v-if="showSaveModal"
+      :initial-title="state.draftTitle || 'My Resume'"
+      @confirm="handleSaveWithTitle"
+      @cancel="showSaveModal = false"
+    />
   </div>
 </template>

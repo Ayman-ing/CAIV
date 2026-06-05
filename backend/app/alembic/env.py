@@ -28,6 +28,7 @@ try:
         ("users_models", "features/users/models.py"),
         ("profiles_models", "features/profiles/models.py"),
         ("resumes_models", "features/resumes/models.py"),
+        ("resume_drafts_models", "features/resumes/resume_drafts/models.py"),
         ("job_descriptions_models", "features/job_descriptions/models.py"),
         ("job_keywords_models", "features/job_keywords/models.py"),
         ("job_requirements_models", "features/job_requirements/models.py"),

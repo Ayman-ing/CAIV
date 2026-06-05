@@ -90,11 +90,11 @@ onMounted(() => {
               <span>CV Editor</span>
             </NuxtLink>
             <NuxtLink
-              to="/templates"
+              to="/jobs"
               class="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
             >
-              <Icon name="heroicons:rectangle-stack" class="w-4 h-4" />
-              <span>Templates</span>
+              <Icon name="heroicons:briefcase" class="w-4 h-4" />
+              <span>Jobs</span>
             </NuxtLink>
           </div>
 
@@ -220,12 +220,12 @@ onMounted(() => {
                 <span>CV Editor</span>
               </NuxtLink>
               <NuxtLink
-                to="/templates"
+                to="/jobs"
                 @click="isMobileMenuOpen = false"
                 class="flex items-center space-x-2 px-3 py-2 rounded-md text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
-                <Icon name="heroicons:rectangle-stack" class="w-4 h-4" />
-                <span>Templates</span>
+                <Icon name="heroicons:briefcase" class="w-4 h-4" />
+                <span>Jobs</span>
               </NuxtLink>
             </div>
           </div>
