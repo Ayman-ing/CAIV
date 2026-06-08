@@ -1,7 +1,6 @@
-"""Repository for embedding database operations."""
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, desc
+from sqlalchemy import select, desc
 from datetime import datetime
 import logging
 import uuid as python_uuid
@@ -13,10 +12,8 @@ logger = logging.getLogger(__name__)
 
 
 class EmbeddingRepository:
-    """Repository for managing embeddings in the database."""
 
     def __init__(self, session: AsyncSession):
-        """Initialize repository with database session."""
         self.session = session
         self.settings = get_settings()
 
@@ -30,24 +27,6 @@ class EmbeddingRepository:
         metadata_json: Optional[str] = None,
         status: str = "completed",
     ) -> Embedding:
-        """
-        Create a new embedding record.
-
-        Args:
-            entity_uuid: UUID of the entity being embedded
-            vector_data: Embedding vector as a list of floats (384 dimensions)
-            embedding_type: Type of embedding (default: full_text)
-            text_preview: First 200 chars of source text
-            token_count: Number of tokens in source text
-            metadata_json: Additional metadata as JSON string
-            status: Status of embedding (default: completed)
-
-        Returns:
-            Created Embedding instance
-
-        Raises:
-            ValueError: If entity_uuid or vector_data is invalid
-        """
         if not entity_uuid or not vector_data:
             raise ValueError("entity_uuid and vector_data are required")
 
@@ -80,16 +59,6 @@ class EmbeddingRepository:
         entity_uuid: str,
         embedding_type: Optional[str] = None,
     ) -> List[Embedding]:
-        """
-        Find embeddings by entity UUID.
-
-        Args:
-            entity_uuid: UUID of the entity
-            embedding_type: Optional filter by type
-
-        Returns:
-            List of embeddings for the entity
-        """
         try:
             query = select(Embedding).where(
                 Embedding.entity_uuid == python_uuid.UUID(entity_uuid)
@@ -111,16 +80,6 @@ class EmbeddingRepository:
         embedding_uuid: str,
         status: str,
     ) -> Optional[Embedding]:
-        """
-        Update the status of an embedding.
-
-        Args:
-            embedding_uuid: UUID of the embedding
-            status: New status (pending, completed, failed)
-
-        Returns:
-            Updated embedding or None if not found
-        """
         try:
             query = select(Embedding).where(
                 Embedding.uuid == python_uuid.UUID(embedding_uuid)
@@ -143,15 +102,6 @@ class EmbeddingRepository:
             raise
 
     async def delete_by_entity(self, entity_uuid: str) -> int:
-        """
-        Delete all embeddings for an entity (for re-indexing).
-
-        Args:
-            entity_uuid: UUID of the entity
-
-        Returns:
-            Number of deleted embeddings
-        """
         try:
             query = select(Embedding).where(
                 Embedding.entity_uuid == python_uuid.UUID(entity_uuid)
@@ -172,15 +122,6 @@ class EmbeddingRepository:
             raise
 
     async def find_recent(self, limit: int = 10) -> List[Embedding]:
-        """
-        Find recently indexed embeddings.
-
-        Args:
-            limit: Maximum number to return
-
-        Returns:
-            List of recent embeddings ordered by indexed_at descending
-        """
         try:
             query = (
                 select(Embedding)
@@ -195,15 +136,6 @@ class EmbeddingRepository:
             raise
 
     async def find_pending(self, limit: int = 100) -> List[Embedding]:
-        """
-        Find pending embeddings that haven't been completed.
-
-        Args:
-            limit: Maximum number to return
-
-        Returns:
-            List of pending embeddings
-        """
         try:
             query = select(Embedding).where(
                 Embedding.status == "pending"

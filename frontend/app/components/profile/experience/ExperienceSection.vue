@@ -1,8 +1,9 @@
 <script setup lang="ts">
 // filepath: frontend/app/components/profile/experience/ExperienceSection.vue
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, inject } from 'vue'
 import CollapsibleSection from '~/components/ui/CollapsibleSection.vue'
 import Modal from '~/components/ui/Modal.vue'
+import IndexingStatusBadge from '~/components/ui/IndexingStatusBadge.vue'
 import { useToast } from '~/composables/useToast'
 import type { WorkExperience, ExperienceFormData, ExperienceDisplay } from './types'
 import { useProfileStore } from '~/stores/profileStore'
@@ -11,6 +12,9 @@ import { profileSectionsService } from '~/services/profileSectionsService'
 const profileStore = useProfileStore()
 const activeProfile = profileStore.activeProfile
 const { success, error } = useToast()
+
+// Inject indexing status from parent
+const indexingStatus = inject<any>('indexingStatus', null)
 
 // Experience Data
 const experienceList = ref<WorkExperience[]>([])
@@ -119,6 +123,9 @@ const handleSave = async () => {
       success('Work experience added successfully!')
     }
     await fetchExperience()
+    if (indexingStatus && activeProfile.value?.uuid) {
+      try { await indexingStatus.refreshStatus(activeProfile.value.uuid) } catch {}
+    }
     closeModal()
   } catch (err) {
     console.error('Failed to save work experience:', err)
@@ -148,6 +155,9 @@ const confirmDelete = async () => {
   try {
     await profileSectionsService.deleteWorkExperience(activeProfile.value.uuid, experienceToDelete.value.uuid)
     await fetchExperience()
+    if (indexingStatus && activeProfile.value?.uuid) {
+      try { await indexingStatus.refreshStatus(activeProfile.value.uuid) } catch {}
+    }
     closeDeleteModal()
     success('Work experience deleted successfully!')
   } catch (err) {
@@ -164,6 +174,18 @@ const isFormValid = computed(() => {
          formData.value.start_date !== '' &&
          (formData.value.isCurrentJob || formData.value.end_date !== '')
 })
+
+const isReindexing = ref<string | null>(null)
+
+async function handleReindexEntity(entityUuid: string): Promise<void> {
+  if (!activeProfile.value?.uuid || !indexingStatus || isReindexing.value) return
+  isReindexing.value = entityUuid
+  try {
+    await indexingStatus.reindexEntity(activeProfile.value.uuid, entityUuid)
+  } finally {
+    isReindexing.value = null
+  }
+}
 
 const hasExperience = computed(() => {
   return experienceList.value.length > 0
@@ -233,9 +255,14 @@ const displayExperience = computed((): ExperienceDisplay[] => {
       <!-- Experience List -->
       <div class="space-y-6">
         <div v-for="exp in displayExperience" :key="exp.uuid" class="relative p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-        <!-- Current Job Badge -->
-        <div v-if="exp.isCurrentPosition" class="absolute top-4 right-4">
-          <span class="px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-full">
+        <!-- Top-right badges row -->
+        <div class="absolute top-4 right-4 flex items-center gap-2">
+            <IndexingStatusBadge
+            v-if="indexingStatus"
+            :status="indexingStatus.getStatus(exp.uuid)?.status || 'never_indexed'"
+              :is-indexing="indexingStatus?.isReindexing(exp.uuid) ?? false"
+          />
+          <span v-if="exp.isCurrentPosition" class="px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-full">
             Current Position
           </span>
         </div>
@@ -264,6 +291,15 @@ const displayExperience = computed((): ExperienceDisplay[] => {
         
         <!-- Actions -->
         <div class="flex items-center justify-end space-x-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <button
+            @click="handleReindexEntity(exp.uuid)"
+            :disabled="(indexingStatus?.isReindexing(exp.uuid) ?? false) || indexingStatus?.getStatus(exp.uuid)?.status === 'indexed'"
+            class="px-3 py-1.5 text-sm bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Icon v-if="!indexingStatus?.isReindexing(exp.uuid)" name="mdi:refresh" class="w-4 h-4 mr-1" />
+            <Icon v-else name="mdi:loading" class="w-4 h-4 mr-1 animate-spin" />
+            {{ indexingStatus?.isReindexing(exp.uuid) ? 'Indexing...' : 'Reindex' }}
+          </button>
           <button
             @click="openEditModal(exp)"
             class="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center"

@@ -1,6 +1,4 @@
-"""Embedding service for generating and managing vector embeddings."""
 import asyncio
-import math
 from typing import List, Optional
 import logging
 from sentence_transformers import SentenceTransformer
@@ -12,7 +10,6 @@ _embedding_model: Optional[SentenceTransformer] = None
 
 
 def _get_embedding_model() -> SentenceTransformer:
-    """Get or initialize the embedding model (lazy loaded, shared by sync and async paths)."""
     global _embedding_model
     if _embedding_model is None:
         settings = get_settings()
@@ -32,16 +29,6 @@ class EmbeddingService:
         texts: List[str],
         batch_size: int = 10,
     ) -> List[List[float]]:
-        """
-        Generate embeddings synchronously (for Celery workers).
-
-        Args:
-            texts: List of text strings to embed
-            batch_size: Number of texts per batch
-
-        Returns:
-            List of embedding vectors
-        """
         if not texts:
             raise ValueError("Cannot generate embeddings for empty text list")
 
@@ -58,18 +45,12 @@ class EmbeddingService:
 
     @staticmethod
     def generate_single_embedding_sync(text: str) -> List[float]:
-        """Generate a single embedding synchronously."""
         if not text or not text.strip():
             raise ValueError("Cannot generate embedding for empty text")
         return EmbeddingService.generate_embeddings_sync([text])[0]
 
     @staticmethod
     async def generate_embeddings(texts: List[str]) -> List[List[float]]:
-        """
-        Generate embeddings asynchronously (for FastAPI request path).
-
-        Offloads the sync model.encode() to a thread pool to avoid blocking the event loop.
-        """
         if not texts:
             raise ValueError("Cannot generate embeddings for empty text list")
 
@@ -85,7 +66,6 @@ class EmbeddingService:
 
     @staticmethod
     async def generate_single_embedding(text: str) -> List[float]:
-        """Generate a single embedding asynchronously."""
         if not text or not text.strip():
             raise ValueError("Cannot generate embedding for empty text")
         embeddings = await EmbeddingService.generate_embeddings([text])
@@ -93,15 +73,12 @@ class EmbeddingService:
 
     @staticmethod
     def calculate_cosine_similarity(vector1: List[float], vector2: List[float]) -> float:
-        """Calculate cosine similarity between two embedding vectors."""
         if len(vector1) != len(vector2):
             raise ValueError(f"Vector dimensions must match: {len(vector1)} != {len(vector2)}")
 
-        import math
-
         dot_product = sum(a * b for a, b in zip(vector1, vector2))
-        mag1 = math.sqrt(sum(a * a for a in vector1))
-        mag2 = math.sqrt(sum(b * b for b in vector2))
+        mag1 = pow(sum(a * a for a in vector1), 0.5)
+        mag2 = pow(sum(b * b for b in vector2), 0.5)
 
         if mag1 == 0 or mag2 == 0:
             return 0.0

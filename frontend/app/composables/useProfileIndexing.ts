@@ -1,15 +1,27 @@
 import { ref, computed } from 'vue'
-import { profileApi } from '~/api/profile'
+import { indexingApi } from '~/api/indexing'
+import { useUserStore } from '~/stores/userStore'
+
+export type EntityIndexedCallback = (entityUuid: string, section: string, status: string) => void
 
 export function useProfileIndexing() {
+  const { user } = useUserStore()
+
   const isIndexing = ref(false)
   const indexingProgress = ref(0)
   const indexingTotal = ref(0)
   const indexingStatus = ref<string | null>(null)
   const indexingError = ref<string | null>(null)
+  const indexingPhase = ref<string | null>(null)
+  const indexingSkipped = ref(0)
+  const indexingSection = ref<string | null>(null)
   const lastIndexedAt = ref<Date | null>(null)
-  const currentTaskId = ref<string | null>(null)
-  const pollingInterval = ref<ReturnType<typeof setInterval> | null>(null)
+  const eventSource = ref<EventSource | null>(null)
+
+  let persistentEventSource: EventSource | null = null
+  const sseReconnectTimer = ref<ReturnType<typeof setTimeout> | null>(null)
+  let reconnectAttempts = 0
+  const MAX_RECONNECT_DELAY = 30000
 
   const isLoading = computed(() => isIndexing.value)
 
@@ -20,9 +32,25 @@ export function useProfileIndexing() {
 
   const progressLabel = computed(() => {
     if (!isIndexing.value) return ''
-    if (indexingTotal.value === 0) return 'Starting...'
-    return `${indexingProgress.value} / ${indexingTotal.value} entities`
+    if (indexingTotal.value === 0) {
+      if (indexingPhase.value === 'collecting') return 'Collecting profile items...'
+      if (indexingPhase.value === 'analyzing') return 'Checking for changes...'
+      return 'Starting...'
+    }
+    const base = `${indexingProgress.value} / ${indexingTotal.value}`
+    if (indexingPhase.value === 'embedding') return `Generating embeddings (${base})`
+    if (indexingPhase.value === 'persisting') {
+      if (indexingSection.value) return `Saving ${indexingSection.value} (${base})`
+      return `Saving (${base})`
+    }
+    return `${base} entities`
   })
+
+  let onEntityIndexedCallback: EntityIndexedCallback | null = null
+
+  function onEntityIndexed(cb: EntityIndexedCallback): void {
+    onEntityIndexedCallback = cb
+  }
 
   async function startIndexing(userId: string, profileId: string): Promise<void> {
     try {
@@ -32,12 +60,9 @@ export function useProfileIndexing() {
       indexingProgress.value = 0
       indexingTotal.value = 0
 
-      const response = await profileApi.indexProfile(userId, profileId)
-      currentTaskId.value = response.task_id
-
-      pollIndexingStatus(response.task_id)
+      const response = await indexingApi.indexProfile(userId, profileId)
+      connectSSE(profileId, userId)
     } catch (error: any) {
-      // Handle 409 conflict (already indexing)
       if (error?.response?.status === 409) {
         indexingStatus.value = null
         isIndexing.value = false
@@ -51,90 +76,160 @@ export function useProfileIndexing() {
     }
   }
 
-  function pollIndexingStatus(taskId: string): void {
-    const maxAttempts = 360
-    let attempts = 0
+  function connectSSE(profileId: string, userId: string): void {
+    if (!import.meta.client || !window.EventSource) return
 
-    pollingInterval.value = setInterval(async () => {
-      try {
-        const status = await profileApi.getIndexingStatus(taskId)
+    const url = indexingApi.getSSEUrl(profileId, userId)
 
-        if (status.result?.current != null && status.result?.total != null) {
-          indexingProgress.value = status.result.current
-          indexingTotal.value = status.result.total
-        }
+    try {
+      const es = new EventSource(url)
+      eventSource.value = es
 
-        if (status.status === 'pending' || status.status === 'in_progress') {
-          indexingStatus.value = status.status
-          attempts++
+      es.addEventListener('connected', () => {
+        indexingStatus.value = 'Indexing started...'
+      })
 
-          if (attempts >= maxAttempts) {
-            isIndexing.value = false
-            indexingError.value = 'Indexing timeout: task took too long'
-            indexingStatus.value = null
-            stopPolling()
+      es.addEventListener('progress', (event) => {
+        try {
+          const d = JSON.parse(event.data)
+          if (d.current != null && d.total != null) {
+            indexingProgress.value = d.current
+            indexingTotal.value = d.total
+            indexingPhase.value = d.phase || null
+            indexingSkipped.value = d.skipped ?? 0
+            indexingSection.value = d.section || null
           }
-        } else if (status.status === 'retrying') {
-          indexingStatus.value = 'Retrying...'
-          attempts++
-        } else if (status.status === 'completed') {
-          isIndexing.value = false
-          indexingStatus.value = 'Indexing completed'
-          indexingProgress.value = indexingTotal.value
-          lastIndexedAt.value = new Date()
-          localStorage.setItem(
-            `profile_indexed_at_${taskId}`,
-            lastIndexedAt.value.toISOString()
-          )
-          stopPolling()
-        } else if (status.status === 'failed') {
-          isIndexing.value = false
-          indexingError.value = status.error || 'Indexing failed with unknown error'
-          indexingStatus.value = null
-          stopPolling()
-        } else if (status.status === 'cancelled') {
-          isIndexing.value = false
-          indexingStatus.value = 'Indexing cancelled'
-          stopPolling()
-        }
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : 'Failed to get status'
-        indexingError.value = msg
-        isIndexing.value = false
-        stopPolling()
-      }
-    }, 5000)
-  }
+        } catch { /* skip malformed */ }
+      })
 
-  function stopPolling(): void {
-    if (pollingInterval.value !== null) {
-      clearInterval(pollingInterval.value)
-      pollingInterval.value = null
+      es.addEventListener('entity_indexed', (event) => {
+        try {
+          const d = JSON.parse(event.data)
+          if (d.entity_uuid) {
+            onEntityIndexedCallback?.(d.entity_uuid, d.section || '', d.status || 'completed')
+          }
+        } catch { /* skip malformed */ }
+      })
+
+      es.addEventListener('completed', () => {
+        isIndexing.value = false
+        indexingStatus.value = 'Indexing completed'
+        indexingProgress.value = indexingTotal.value || 1
+        lastIndexedAt.value = new Date()
+        disconnectSSE()
+      })
+
+      es.addEventListener('error', () => {
+        isIndexing.value = false
+        indexingError.value = 'Indexing error occurred'
+        indexingStatus.value = null
+        disconnectSSE()
+      })
+
+      es.onerror = () => {
+        disconnectSSE()
+        isIndexing.value = false
+        indexingError.value = 'SSE connection lost'
+        indexingStatus.value = null
+      }
+
+    } catch {
+      isIndexing.value = false
+      indexingError.value = 'Failed to connect to indexing stream'
     }
   }
 
+  function disconnectSSE(): void {
+    if (eventSource.value) {
+      eventSource.value.close()
+      eventSource.value = null
+    }
+  }
+
+  function _handleEntityIndexed(event: MessageEvent): void {
+    try {
+      const d = JSON.parse(event.data)
+      if (d.entity_uuid) {
+        onEntityIndexedCallback?.(d.entity_uuid, d.section || '', d.status || 'completed')
+      }
+    } catch { /* skip malformed */ }
+  }
+
+  function _getReconnectDelay(): number {
+    const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), MAX_RECONNECT_DELAY)
+    return delay + Math.random() * 1000
+  }
+
+  function _scheduleReconnect(profileId: string, userId: string): void {
+    if (persistentEventSource) return
+    if (sseReconnectTimer.value) return
+
+    const delay = _getReconnectDelay()
+    reconnectAttempts++
+    sseReconnectTimer.value = setTimeout(() => {
+      sseReconnectTimer.value = null
+      connectPersistentSSE(profileId, userId)
+    }, delay)
+  }
+
+  function connectPersistentSSE(profileId: string, userId: string): void {
+    if (persistentEventSource) return
+
+    const url = indexingApi.getSSEUrl(profileId, userId)
+    try {
+      const es = new EventSource(url)
+      persistentEventSource = es
+
+      es.addEventListener('entity_indexed', _handleEntityIndexed)
+
+      es.addEventListener('completed', () => {
+        persistentEventSource = null
+        es.close()
+      })
+
+      es.addEventListener('error', () => {
+        persistentEventSource = null
+        es.close()
+        _scheduleReconnect(profileId, userId)
+      })
+
+      es.onerror = () => {
+        persistentEventSource = null
+        es.close()
+        _scheduleReconnect(profileId, userId)
+      }
+
+      reconnectAttempts = 0
+    } catch {
+      _scheduleReconnect(profileId, userId)
+    }
+  }
+
+  function disconnectPersistentSSE(): void {
+    if (persistentEventSource) {
+      persistentEventSource.close()
+      persistentEventSource = null
+    }
+    if (sseReconnectTimer.value) {
+      clearTimeout(sseReconnectTimer.value)
+      sseReconnectTimer.value = null
+    }
+    reconnectAttempts = 0
+  }
+
   function reset(): void {
-    stopPolling()
+    disconnectSSE()
+    disconnectPersistentSSE()
     isIndexing.value = false
     indexingProgress.value = 0
     indexingTotal.value = 0
     indexingStatus.value = null
     indexingError.value = null
-    currentTaskId.value = null
-  }
-
-  function loadLastIndexedTime(): void {
-    if (import.meta.client) {
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i)
-        if (key?.startsWith('profile_indexed_at_')) {
-          const timestamp = localStorage.getItem(key)
-          if (timestamp) {
-            lastIndexedAt.value = new Date(timestamp)
-          }
-        }
-      }
-    }
+    indexingPhase.value = null
+    indexingSkipped.value = 0
+    indexingSection.value = null
+    lastIndexedAt.value = null
+    onEntityIndexedCallback = null
   }
 
   return {
@@ -144,13 +239,17 @@ export function useProfileIndexing() {
     indexingTotal,
     indexingStatus,
     indexingError,
+    indexingPhase,
+    indexingSkipped,
+    indexingSection,
     lastIndexedAt,
-    currentTaskId,
     progressPercent,
     progressLabel,
     startIndexing,
-    stopPolling,
     reset,
-    loadLastIndexedTime,
+    onEntityIndexed,
+    disconnectSSE,
+    connectPersistentSSE,
+    disconnectPersistentSSE,
   }
 }

@@ -1,17 +1,19 @@
 <script setup lang="ts">
 // filepath: frontend/app/components/profile/language/LanguageSection.vue
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, inject } from 'vue'
 import CollapsibleSection from '~/components/ui/CollapsibleSection.vue'
 import Modal from '~/components/ui/Modal.vue'
 import type { Language, LanguageFormData, LanguageDisplay } from './types'
 import { PROFICIENCY_LEVELS, COMMON_LANGUAGES } from './types'
 import { useProfileStore } from '~/stores/profileStore'
 import { profileSectionsService } from '~/services/profileSectionsService'
+import IndexingStatusBadge from '~/components/ui/IndexingStatusBadge.vue'
 import { useToast } from '~/composables/useToast'
 
 const profileStore = useProfileStore()
 const activeProfile = profileStore.activeProfile
 const { success, error } = useToast()
+const indexingStatus = inject<any>('indexingStatus', null)
 
 // Languages Data
 const languages = ref<Language[]>([])
@@ -123,6 +125,9 @@ const handleSave = async () => {
       success('Language added successfully!')
     }
     await fetchLanguages()
+    if (indexingStatus && activeProfile.value?.uuid) {
+      try { await indexingStatus.refreshStatus(activeProfile.value.uuid) } catch {}
+    }
     closeModal()
   } catch (err) {
     error(`Failed to save language: ${err instanceof Error ? err.message : 'Unknown error'}`)
@@ -151,6 +156,9 @@ const confirmDelete = async () => {
   try {
     await profileSectionsService.deleteLanguage(activeProfile.value.uuid, languageToDelete.value.uuid)
     await fetchLanguages()
+    if (indexingStatus && activeProfile.value?.uuid) {
+      try { await indexingStatus.refreshStatus(activeProfile.value.uuid) } catch {}
+    }
     closeDeleteModal()
     success('Language deleted successfully!')
   } catch (err) {
@@ -158,6 +166,11 @@ const confirmDelete = async () => {
   } finally {
     isDeleting.value = false
   }
+}
+
+async function handleReindexEntity(entityUuid: string): Promise<void> {
+  if (!activeProfile.value?.uuid || !indexingStatus) return
+  await indexingStatus.reindexEntity(activeProfile.value.uuid, entityUuid)
 }
 
 const isFormValid = computed(() => {
@@ -240,6 +253,14 @@ const getProficiencyColor = (proficiency: string) => {
       <!-- Languages List -->
       <div class="space-y-6">
         <div v-for="lang in displayLanguagesSorted" :key="lang.uuid" class="relative p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+        <!-- Indexing status -->
+        <div class="absolute top-4 right-4">
+          <IndexingStatusBadge
+            v-if="indexingStatus"
+            :status="indexingStatus.getStatus(lang.uuid)?.status || 'never_indexed'"
+            :is-indexing="indexingStatus?.isReindexing(lang.uuid) ?? false"
+          />
+        </div>
         <div class="flex items-center justify-between">
           <div>
             <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
@@ -257,6 +278,15 @@ const getProficiencyColor = (proficiency: string) => {
           </div>
           
           <div class="flex items-center space-x-2">
+            <button
+              @click="handleReindexEntity(lang.uuid)"
+              :disabled="(indexingStatus?.isReindexing(lang.uuid) ?? false) || indexingStatus?.getStatus(lang.uuid)?.status === 'indexed'"
+              class="p-1.5 text-gray-400 hover:text-amber-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Reindex"
+            >
+              <Icon v-if="!indexingStatus?.isReindexing(lang.uuid)" name="mdi:refresh" class="w-4 h-4" />
+              <Icon v-else name="mdi:loading" class="w-4 h-4 animate-spin" />
+            </button>
             <button @click="openEditModal(lang)" class="p-2 text-gray-400 hover:text-indigo-600 transition-colors">
               <Icon name="mdi:pencil" class="w-5 h-5" />
             </button>

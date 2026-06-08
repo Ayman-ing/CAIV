@@ -1,15 +1,14 @@
-"""Celery tasks for embedding generation and indexing."""
 import hashlib
 import logging
 from datetime import datetime
 import uuid
-from typing import List
+from typing import List, Optional
 
 from sqlalchemy import select
 
 from core.celery_app import celery_app
 from core.config import get_settings
-from core.redis_client import release_lock
+from core.redis_client import release_lock, publish_event
 from db.sync_session import SyncSessionLocal
 from .service import EmbeddingService
 from .text_formatter import TextFormatter
@@ -21,17 +20,11 @@ settings = get_settings()
 
 
 def _content_hash(text: str) -> str:
-    """Compute SHA-256 hex digest for change detection."""
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def _get_existing_hashes(session, profile_uuid: str) -> dict[str, str]:
-    """Return {entity_uuid: content_hash} for all embeddings belonging to this profile's entities.
-
-    Joins through the entity table to scope to a single profile.
-    """
     from features.profiles.models import Profile
-    from shared.models.entity import Entity
 
     profile = session.execute(
         select(Profile).where(Profile.uuid == profile_uuid)
@@ -41,7 +34,6 @@ def _get_existing_hashes(session, profile_uuid: str) -> dict[str, str]:
 
     profile_id = profile.id
 
-    # Collect all entity UUIDs for this profile across all section types
     entity_uuids: list[str] = []
     for model_class, _, _ in TextFormatter.get_sections_config():
         items = session.execute(
@@ -52,7 +44,6 @@ def _get_existing_hashes(session, profile_uuid: str) -> dict[str, str]:
     if not entity_uuids:
         return {}
 
-    # Bulk-fetch existing hashes
     uuids = [uuid.UUID(eid) for eid in entity_uuids]
     rows = session.execute(
         select(Embedding.entity_uuid, Embedding.content_hash).where(
@@ -114,10 +105,6 @@ def _create_embedding(
     soft_time_limit=550,
 )
 def index_profile_task(self, profile_uuid: str) -> dict:
-    """
-    Index profile entities with change detection (content_hash), batched embeddings,
-    Redis lock management, and progress reporting.
-    """
     import time
     overall_start = time.monotonic()
 
@@ -145,11 +132,9 @@ def index_profile_task(self, profile_uuid: str) -> dict:
         profile_id = profile.id
         sections_config = TextFormatter.get_sections_config()
 
-        # Load existing hashes for change detection
         existing_hashes = _get_existing_hashes(session, profile_uuid)
 
-        # Collect all items with their content hashes
-        entity_items: List[tuple[str, str, str, str]] = []  # (uuid, text, section_name, hash)
+        entity_items: List[tuple[str, str, str, str]] = []
         section_stats: dict = {}
 
         for model, text_fn, section_name in sections_config:
@@ -171,14 +156,21 @@ def index_profile_task(self, profile_uuid: str) -> dict:
 
         stats["total_items"] = len(entity_items)
 
+        publish_event(profile_uuid, "progress", {
+            "current": 0,
+            "total": len(entity_items),
+            "phase": "collecting",
+            "skipped": 0,
+        })
+
         if not entity_items:
             logger.info(f"No items to index for profile {profile_uuid}")
             stats["duration_s"] = round(time.monotonic() - overall_start, 2)
             stats["completed_at"] = datetime.utcnow().isoformat()
             session.commit()
+            publish_event(profile_uuid, "completed", {"stats": stats, "message": "No items to index"})
             return stats
 
-        # Split into unchanged (skip) and changed (needs re-embed)
         unchanged: List[tuple[str, str, str, str]] = []
         changed: List[tuple[str, str, str, str]] = []
 
@@ -196,37 +188,63 @@ def index_profile_task(self, profile_uuid: str) -> dict:
             f"out of {len(entity_items)} total"
         )
 
+        publish_event(profile_uuid, "progress", {
+            "current": 0,
+            "total": len(changed),
+            "phase": "analyzing",
+            "skipped": len(unchanged),
+        })
+
         if not changed:
             logger.info(f"Nothing changed for profile {profile_uuid}, skipping entirely")
             stats["successful"] = stats["skipped"]
             stats["duration_s"] = round(time.monotonic() - overall_start, 2)
             stats["completed_at"] = datetime.utcnow().isoformat()
             session.commit()
+            publish_event(profile_uuid, "completed", {"stats": stats, "message": "Nothing changed"})
             return stats
 
-        # Batch embed only changed items
         batch_size = settings.EMBEDDING_BATCH_SIZE
-        changed_texts = [item[1] for item in changed]
+        total_changed = len(changed)
 
         self.update_state(
             state="PROGRESS",
-            meta={"current": 0, "total": len(changed), "phase": "embedding", "skipped": len(unchanged)},
+            meta={"current": 0, "total": total_changed, "phase": "embedding", "skipped": len(unchanged)},
         )
+        publish_event(profile_uuid, "progress", {
+            "current": 0,
+            "total": total_changed,
+            "phase": "embedding",
+            "skipped": len(unchanged),
+        })
 
+        embedding_vectors = []
         try:
-            embedding_vectors = EmbeddingService.generate_embeddings_sync(
-                changed_texts, batch_size=batch_size
-            )
+            for batch_start in range(0, total_changed, batch_size):
+                batch_end = min(batch_start + batch_size, total_changed)
+                batch = changed[batch_start:batch_end]
+                batch_texts = [item[1] for item in batch]
+
+                batch_vectors = EmbeddingService.generate_embeddings_sync(
+                    batch_texts, batch_size=len(batch_texts)
+                )
+                embedding_vectors.extend(batch_vectors)
+
+                publish_event(profile_uuid, "progress", {
+                    "current": batch_end,
+                    "total": total_changed,
+                    "phase": "embedding",
+                    "skipped": len(unchanged),
+                })
         except Exception as e:
             logger.error(f"Embedding generation failed: {e}")
             stats["errors"].append(f"Embedding generation failed: {str(e)}")
-            stats["failed"] = len(changed)
+            stats["failed"] = total_changed
             stats["duration_s"] = round(time.monotonic() - overall_start, 2)
             stats["completed_at"] = datetime.utcnow().isoformat()
             session.commit()
             return stats
 
-        # Persist changed embeddings (delete old + create new with current hash)
         for i, (e_uuid, text, section_name, h) in enumerate(changed):
             try:
                 _delete_embeddings_for_entity(session, e_uuid)
@@ -245,6 +263,12 @@ def index_profile_task(self, profile_uuid: str) -> dict:
                 )
                 stats["successful"] += 1
 
+                publish_event(profile_uuid, "entity_indexed", {
+                    "entity_uuid": e_uuid,
+                    "section": section_name,
+                    "status": "completed",
+                })
+
                 if (i + 1) % 5 == 0 or i == len(changed) - 1:
                     self.update_state(
                         state="PROGRESS",
@@ -253,8 +277,16 @@ def index_profile_task(self, profile_uuid: str) -> dict:
                             "total": len(changed),
                             "phase": "persisting",
                             "skipped": len(unchanged),
+                            "section": section_name,
                         },
                     )
+                    publish_event(profile_uuid, "progress", {
+                        "current": i + 1,
+                        "total": len(changed),
+                        "phase": "persisting",
+                        "skipped": len(unchanged),
+                        "section": section_name,
+                    })
 
                 prev = section_stats.get(section_name, {"count": 0, "duration_s": 0})
                 prev["count"] = prev.get("count", 0) + 1
@@ -264,6 +296,12 @@ def index_profile_task(self, profile_uuid: str) -> dict:
                 logger.error(f"Failed to create embedding for {e_uuid}: {e}")
                 stats["failed"] += 1
                 stats["errors"].append(f"{section_name}/{e_uuid}: {str(e)}")
+                publish_event(profile_uuid, "entity_indexed", {
+                    "entity_uuid": e_uuid,
+                    "section": section_name,
+                    "status": "failed",
+                    "error": str(e),
+                })
 
         for section_name in section_stats:
             section_stats[section_name]["duration_s"] = round(
@@ -276,6 +314,8 @@ def index_profile_task(self, profile_uuid: str) -> dict:
         overall_dur = time.monotonic() - overall_start
         stats["duration_s"] = round(overall_dur, 2)
         stats["completed_at"] = datetime.utcnow().isoformat()
+
+        publish_event(profile_uuid, "completed", {"stats": stats})
 
         logger.info(
             f"Indexing finished for profile {profile_uuid}: "
@@ -294,6 +334,7 @@ def index_profile_task(self, profile_uuid: str) -> dict:
         )
         stats["duration_s"] = round(overall_dur, 2)
         stats["completed_at"] = datetime.utcnow().isoformat()
+        publish_event(profile_uuid, "error", {"message": str(e), "stats": stats})
         return stats
 
     finally:
@@ -307,8 +348,8 @@ def index_profile_task(self, profile_uuid: str) -> dict:
     bind=True,
     max_retries=2,
 )
-def index_entity_task(self, entity_uuid: str, entity_type: str, text: str) -> dict:
-    """Generate and store embedding for a single entity."""
+def index_entity_task(self, entity_uuid: str, entity_type: str, text: str,
+                      profile_uuid: Optional[str] = None) -> dict:
     result = {
         "entity_uuid": str(entity_uuid),
         "entity_type": entity_type,
@@ -320,11 +361,18 @@ def index_entity_task(self, entity_uuid: str, entity_type: str, text: str) -> di
     if not text or not text.strip():
         result["error"] = "Empty text provided"
         logger.warning(f"Empty text for entity {entity_uuid}")
+        if profile_uuid:
+            publish_event(profile_uuid, "entity_indexed", {
+                "entity_uuid": entity_uuid,
+                "section": entity_type,
+                "status": "failed",
+                "error": "Empty text",
+            })
+        release_lock(f"entity:{entity_uuid}")
         return result
 
     session = SyncSessionLocal()
     try:
-        # Check if unchanged
         h = _content_hash(text)
         existing = session.execute(
             select(Embedding).where(
@@ -338,6 +386,12 @@ def index_entity_task(self, entity_uuid: str, entity_type: str, text: str) -> di
             result["status"] = "completed"
             result["embedding_uuid"] = str(existing.uuid)
             result["skipped"] = True
+            if profile_uuid:
+                publish_event(profile_uuid, "entity_indexed", {
+                    "entity_uuid": entity_uuid,
+                    "section": entity_type,
+                    "status": "skipped",
+                })
             return result
 
         _delete_embeddings_for_entity(session, entity_uuid)
@@ -360,12 +414,29 @@ def index_entity_task(self, entity_uuid: str, entity_type: str, text: str) -> di
         result["embedding_uuid"] = str(embedding.uuid)
         logger.info(f"Created embedding {embedding.uuid} for entity {entity_uuid} ({entity_type})")
 
+        if profile_uuid:
+            publish_event(profile_uuid, "entity_indexed", {
+                "entity_uuid": entity_uuid,
+                "section": entity_type,
+                "status": "completed",
+            })
+            publish_event(profile_uuid, "completed", {"message": f"Entity {entity_uuid} indexed"})
+
     except Exception as e:
         session.rollback()
         result["error"] = str(e)
         logger.error(f"Error indexing entity {entity_uuid}: {str(e)}")
+        if profile_uuid:
+            publish_event(profile_uuid, "entity_indexed", {
+                "entity_uuid": entity_uuid,
+                "section": entity_type,
+                "status": "failed",
+                "error": str(e),
+            })
+            publish_event(profile_uuid, "error", {"message": str(e), "entity_uuid": entity_uuid})
 
     finally:
+        release_lock(f"entity:{entity_uuid}")
         session.close()
 
     return result

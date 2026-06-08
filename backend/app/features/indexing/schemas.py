@@ -1,9 +1,3 @@
-"""
-Vector Embedding Schemas
-
-Pydantic schemas for vector embedding data validation.
-"""
-
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional, Dict, Any, List
@@ -47,3 +41,28 @@ class IndexingTaskResponse(BaseModel):
     status: str
     result: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
+
+
+class EntityIndexingStatusItem(BaseModel):
+    uuid: str
+    entity_type: str
+    updated_at: datetime
+    indexed_at: Optional[datetime] = None
+    needs_reindex: bool
+    status: str
+
+
+class IndexingStatusResponse(BaseModel):
+    profile_uuid: str
+    entities: list[EntityIndexingStatusItem]
+    profile_indexed_at: Optional[datetime] = None
+    total_entities: int
+    indexed_count: int
+    needs_reindex_count: int
+    never_indexed_count: int
+
+
+class EntityIndexingResponse(BaseModel):
+    task_id: str
+    entity_uuid: str
+    status: str

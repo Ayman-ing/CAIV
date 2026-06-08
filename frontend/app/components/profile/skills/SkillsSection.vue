@@ -1,8 +1,9 @@
 <script setup lang="ts">
 // filepath: frontend/app/components/profile/skills/SkillsSection.vue
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, inject } from 'vue'
 import CollapsibleSection from '~/components/ui/CollapsibleSection.vue'
 import Modal from '~/components/ui/Modal.vue'
+import IndexingStatusBadge from '~/components/ui/IndexingStatusBadge.vue'
 import { useToast } from '~/composables/useToast'
 import type { Skill, SkillFormData, SkillGroup } from './types'
 import { SKILL_CATEGORIES, PROFICIENCY_LEVELS } from './types'
@@ -12,6 +13,7 @@ import { profileSectionsService } from '~/services/profileSectionsService'
 const profileStore = useProfileStore()
 const activeProfile = profileStore.activeProfile
 const { success, error } = useToast()
+const indexingStatus = inject<any>('indexingStatus', null)
 
 // Skills Data
 const skills = ref<Skill[]>([])
@@ -109,6 +111,9 @@ const handleSave = async () => {
       success('Skill added successfully!')
     }
     await fetchSkills()
+    if (indexingStatus && activeProfile.value?.uuid) {
+      try { await indexingStatus.refreshStatus(activeProfile.value.uuid) } catch {}
+    }
     closeModal()
   } catch (err) {
     console.error('Failed to save skill:', err)
@@ -146,6 +151,9 @@ const confirmDelete = async () => {
     const result = await profileSectionsService.deleteSkill(activeProfile.value.uuid, skillToDelete.value.uuid)
     console.log('Delete result:', result)
     await fetchSkills()
+    if (indexingStatus && activeProfile.value?.uuid) {
+      try { await indexingStatus.refreshStatus(activeProfile.value.uuid) } catch {}
+    }
     closeDeleteModal()
     success('Skill deleted successfully!')
   } catch (err) {
@@ -154,6 +162,11 @@ const confirmDelete = async () => {
   } finally {
     isDeleting.value = false
   }
+}
+
+async function handleReindexEntity(entityUuid: string): Promise<void> {
+  if (!activeProfile.value?.uuid || !indexingStatus) return
+  await indexingStatus.reindexEntity(activeProfile.value.uuid, entityUuid)
 }
 
 const isFormValid = computed(() => {
@@ -268,6 +281,13 @@ const getProficiencyLabel = (proficiency: string | null) => {
           <!-- Skills Grid -->
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             <div v-for="skill in group.skills" :key="skill.uuid" class="relative p-4 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg hover:shadow-sm transition-shadow group">
+              <div class="absolute top-2 right-2">
+                <IndexingStatusBadge
+                  v-if="indexingStatus"
+                  :status="indexingStatus.getStatus(skill.uuid)?.status || 'never_indexed'"
+            :is-indexing="indexingStatus?.isReindexing(skill.uuid) ?? false"
+                />
+              </div>
               <!-- Skill Name -->
               <div class="mb-2">
                 <h4 class="font-medium text-gray-900 dark:text-gray-100">{{ skill.name }}</h4>
@@ -282,6 +302,15 @@ const getProficiencyLabel = (proficiency: string | null) => {
               
               <!-- Actions -->
               <div class="flex items-center justify-end space-x-1 group-hover:opacity-100 transition-opacity">
+                <button
+                  @click="handleReindexEntity(skill.uuid)"
+                  :disabled="(indexingStatus?.isReindexing(skill.uuid) ?? false) || indexingStatus?.getStatus(skill.uuid)?.status === 'indexed'"
+                  class="p-1.5 text-gray-400 hover:text-amber-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Reindex"
+                >
+                  <Icon v-if="!indexingStatus?.isReindexing(skill.uuid)" name="mdi:refresh" class="w-4 h-4" />
+                  <Icon v-else name="mdi:loading" class="w-4 h-4 animate-spin" />
+                </button>
                 <button
                   @click="openEditModal(skill)"
                   class="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"

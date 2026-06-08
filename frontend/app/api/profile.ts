@@ -1,19 +1,4 @@
-// filepath: frontend/app/api/profile.ts
 import type { Profile, ProfileCreate, ProfileUpdate } from '~/types/profile'
-
-export interface IndexingResponse {
-  task_id: string
-  message: string
-  profile_uuid: string
-  status: string
-}
-
-export interface IndexingStatus {
-  task_id: string
-  status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'retrying' | 'cancelled'
-  result?: Record<string, any>
-  error?: string
-}
 
 const getApiUrl = (endpoint: string) => {
   const config = useRuntimeConfig()
@@ -71,18 +56,4 @@ export const profileApi = {
     })
   },
 
-  async indexProfile(userId: string, profileId: string): Promise<IndexingResponse> {
-    return await $fetch<IndexingResponse>(getApiUrl(`/api/v1/profiles/${profileId}/index`), {
-      method: 'POST',
-      query: { user_uuid: userId },
-      headers: getAuthHeaders(),
-    })
-  },
-
-  async getIndexingStatus(taskId: string): Promise<IndexingStatus> {
-    return await $fetch<IndexingStatus>(getApiUrl(`/api/v1/tasks/${taskId}`), {
-      method: 'GET',
-      headers: getAuthHeaders(),
-    })
-  }
 }

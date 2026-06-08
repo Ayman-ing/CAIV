@@ -1,19 +1,15 @@
-"""
-Vector Embedding Feature
-
-Embedding generation, storage (pgvector), and indexing for AI similarity matching.
-"""
-
 from .schemas import (
     EmbeddingCreate,
     EmbeddingUpdate,
     EmbeddingResponse,
     IndexingTaskResponse,
 )
+from .router import router as indexing_router
 
 __all__ = [
     "EmbeddingCreate",
     "EmbeddingUpdate",
     "EmbeddingResponse",
     "IndexingTaskResponse",
+    "indexing_router",
 ]

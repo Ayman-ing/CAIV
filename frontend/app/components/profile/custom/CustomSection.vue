@@ -1,9 +1,10 @@
 <script setup lang="ts">
 // filepath: frontend/app/components/profile/custom/CustomSection.vue
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, inject } from 'vue'
 import CollapsibleSection from '~/components/ui/CollapsibleSection.vue'
 import Modal from '~/components/ui/Modal.vue'
 import { useToast } from '~/composables/useToast'
+import IndexingStatusBadge from '~/components/ui/IndexingStatusBadge.vue'
 import type { CustomSection, CustomSectionFormData } from './types'
 import { useProfileStore } from '~/stores/profileStore'
 import { profileSectionsService } from '~/services/profileSectionsService'
@@ -11,6 +12,7 @@ import { profileSectionsService } from '~/services/profileSectionsService'
 const profileStore = useProfileStore()
 const activeProfileUuid = computed(() => profileStore.activeProfile.value?.uuid)
 const { success, error } = useToast()
+const indexingStatus = inject<any>('indexingStatus', null)
 
 // Custom Sections Data
 const customSections = ref<CustomSection[]>([])
@@ -95,6 +97,9 @@ const handleSave = async () => {
       success('Custom section added successfully!')
     }
     await fetchSections()
+    if (indexingStatus && activeProfileUuid.value) {
+      try { await indexingStatus.refreshStatus(activeProfileUuid.value) } catch {}
+    }
     closeModal()
   } catch (err) {
     console.error('Failed to save custom section:', err)
@@ -124,6 +129,9 @@ const confirmDelete = async () => {
   try {
     await profileSectionsService.deleteCustomSection(activeProfileUuid.value, sectionToDelete.value.uuid)
     await fetchSections()
+    if (indexingStatus && activeProfileUuid.value) {
+      try { await indexingStatus.refreshStatus(activeProfileUuid.value) } catch {}
+    }
     closeDeleteModal()
     success('Custom section deleted successfully!')
   } catch (err) {
@@ -141,9 +149,17 @@ const removeSection = async (uuid: string) => {
   try {
     await profileSectionsService.deleteCustomSection(activeProfileUuid.value, uuid)
     await fetchSections()
+    if (indexingStatus && activeProfileUuid.value) {
+      try { await indexingStatus.refreshStatus(activeProfileUuid.value) } catch {}
+    }
   } catch (error) {
     console.error('Failed to delete custom section:', error)
   }
+}
+
+async function handleReindexEntity(entityUuid: string): Promise<void> {
+  if (!activeProfileUuid.value || !indexingStatus) return
+  await indexingStatus.reindexEntity(activeProfileUuid.value, entityUuid)
 }
 
 const isFormValid = computed(() => {
@@ -199,9 +215,25 @@ const hasSections = computed(() => customSections.value.length > 0)
       <!-- Custom Sections List -->
       <div class="space-y-6">
         <div v-for="section in customSections" :key="section.uuid" class="relative p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+          <div class="absolute top-4 right-4">
+            <IndexingStatusBadge
+              v-if="indexingStatus"
+              :status="indexingStatus.getStatus(section.uuid)?.status || 'never_indexed'"
+              :is-indexing="indexingStatus?.isReindexing(section.uuid) ?? false"
+            />
+          </div>
         <div class="flex items-start justify-between mb-4">
           <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ section.title }}</h3>
           <div class="flex items-center space-x-2">
+            <button
+              @click="handleReindexEntity(section.uuid)"
+              :disabled="(indexingStatus?.isReindexing(section.uuid) ?? false) || indexingStatus?.getStatus(section.uuid)?.status === 'indexed'"
+              class="p-1.5 text-gray-400 hover:text-amber-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Reindex"
+            >
+              <Icon v-if="!indexingStatus?.isReindexing(section.uuid)" name="mdi:refresh" class="w-4 h-4" />
+              <Icon v-else name="mdi:loading" class="w-4 h-4 animate-spin" />
+            </button>
             <button @click="openEditModal(section)" class="p-2 text-gray-400 hover:text-pink-600 transition-colors">
               <Icon name="mdi:pencil" class="w-5 h-5" />
             </button>

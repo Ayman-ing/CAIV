@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // filepath: frontend/app/components/profile/certification/CertificationSection.vue
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, inject } from 'vue'
 import CollapsibleSection from '~/components/ui/CollapsibleSection.vue'
 import Modal from '~/components/ui/Modal.vue'
 import type { Certificate, CertificationFormData, CertificationDisplay } from './types'
@@ -8,10 +8,12 @@ import { CERTIFICATION_PROVIDERS } from './types'
 import { useProfileStore } from '~/stores/profileStore'
 import { profileSectionsService } from '~/services/profileSectionsService'
 import { useToast } from '~/composables/useToast'
+import IndexingStatusBadge from '~/components/ui/IndexingStatusBadge.vue'
 
 const profileStore = useProfileStore()
 const activeProfile = profileStore.activeProfile
 const { success, error } = useToast()
+const indexingStatus = inject<any>('indexingStatus', null)
 
 // Certifications Data
 const certifications = ref<Certificate[]>([])
@@ -109,6 +111,9 @@ const handleSave = async () => {
       success('Certification added successfully!')
     }
     await fetchCertifications()
+    if (indexingStatus && activeProfile.value?.uuid) {
+      try { await indexingStatus.refreshStatus(activeProfile.value.uuid) } catch {}
+    }
     closeModal()
   } catch (err) {
     error(`Failed to save certification: ${err instanceof Error ? err.message : 'Unknown error'}`)
@@ -136,6 +141,9 @@ const confirmDelete = async () => {
   try {
     await profileSectionsService.deleteCertificate(activeProfile.value.uuid, certificationToDelete.value.uuid)
     await fetchCertifications()
+    if (indexingStatus && activeProfile.value?.uuid) {
+      try { await indexingStatus.refreshStatus(activeProfile.value.uuid) } catch {}
+    }
     closeDeleteModal()
     success('Certification deleted successfully!')
   } catch (err) {
@@ -143,6 +151,11 @@ const confirmDelete = async () => {
   } finally {
     isDeleting.value = false
   }
+}
+
+async function handleReindexEntity(entityUuid: string): Promise<void> {
+  if (!activeProfile.value?.uuid || !indexingStatus) return
+  await indexingStatus.reindexEntity(activeProfile.value.uuid, entityUuid)
 }
 
 const isFormValid = computed(() => {
@@ -251,8 +264,15 @@ const getStatusLabel = (status: string) => {
       <!-- Certifications List -->
       <div class="space-y-6">
         <div v-for="cert in displayCertifications" :key="cert.uuid" class="relative p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-        <div class="absolute top-4 right-4 text-xs font-medium px-2 py-1 rounded-full border" :class="getStatusColor(cert.status)">
-          {{ getStatusLabel(cert.status) }}
+        <div class="absolute top-4 right-4 flex items-center gap-2">
+          <IndexingStatusBadge
+            v-if="indexingStatus"
+            :status="indexingStatus.getStatus(cert.uuid)?.status || 'never_indexed'"
+            :is-indexing="indexingStatus?.isReindexing(cert.uuid) ?? false"
+          />
+          <span class="text-xs font-medium px-2 py-1 rounded-full border" :class="getStatusColor(cert.status)">
+            {{ getStatusLabel(cert.status) }}
+          </span>
         </div>
         
         <div class="mb-4 pr-20">
@@ -285,6 +305,15 @@ const getStatusLabel = (status: string) => {
         
         <!-- Actions -->
         <div class="flex items-center justify-end space-x-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <button
+            @click="handleReindexEntity(cert.uuid)"
+            :disabled="(indexingStatus?.isReindexing(cert.uuid) ?? false) || indexingStatus?.getStatus(cert.uuid)?.status === 'indexed'"
+            class="px-3 py-1.5 text-sm bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Icon v-if="!indexingStatus?.isReindexing(cert.uuid)" name="mdi:refresh" class="w-4 h-4 mr-1" />
+            <Icon v-else name="mdi:loading" class="w-4 h-4 mr-1 animate-spin" />
+            {{ indexingStatus?.isReindexing(cert.uuid) ? 'Indexing...' : 'Reindex' }}
+          </button>
           <button
             @click="openEditModal(cert)"
             class="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center"

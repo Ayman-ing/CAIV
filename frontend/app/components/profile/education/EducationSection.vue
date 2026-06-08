@@ -1,8 +1,9 @@
 <script setup lang="ts">
 // filepath: frontend/app/components/profile/education/EducationSection.vue
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, inject } from 'vue'
 import CollapsibleSection from '~/components/ui/CollapsibleSection.vue'
 import Modal from '~/components/ui/Modal.vue'
+import IndexingStatusBadge from '~/components/ui/IndexingStatusBadge.vue'
 import { useToast } from '~/composables/useToast'
 import type { Education, EducationFormData, EducationDisplay } from './types'
 import { useProfileStore } from '~/stores/profileStore'
@@ -11,6 +12,8 @@ import { profileSectionsService } from '~/services/profileSectionsService'
 const profileStore = useProfileStore()
 const activeProfile = profileStore.activeProfile
 const { success, error } = useToast()
+
+const indexingStatus = inject<any>('indexingStatus', null)
 
 // Education Data
 const educationList = ref<Education[]>([])
@@ -141,6 +144,9 @@ const handleSave = async () => {
       success('Education added successfully!')
     }
     await fetchEducation()
+    if (indexingStatus && activeProfile.value?.uuid) {
+      try { await indexingStatus.refreshStatus(activeProfile.value.uuid) } catch {}
+    }
     closeModal()
   } catch (err) {
     console.error('Failed to save education:', err)
@@ -170,6 +176,9 @@ const confirmDelete = async () => {
   try {
     await profileSectionsService.deleteEducation(activeProfile.value.uuid, educationToDelete.value.uuid)
     await fetchEducation()
+    if (indexingStatus && activeProfile.value?.uuid) {
+      try { await indexingStatus.refreshStatus(activeProfile.value.uuid) } catch {}
+    }
     closeDeleteModal()
     success('Education deleted successfully!')
   } catch (err) {
@@ -178,6 +187,11 @@ const confirmDelete = async () => {
   } finally {
     isDeleting.value = false
   }
+}
+
+async function handleReindexEntity(entityUuid: string): Promise<void> {
+  if (!activeProfile.value?.uuid || !indexingStatus) return
+  await indexingStatus.reindexEntity(activeProfile.value.uuid, entityUuid)
 }
 
 const isFormValid = computed(() => {
@@ -255,9 +269,14 @@ const displayEducation = computed((): EducationDisplay[] => {
       <!-- Education Timeline -->
       <div class="space-y-4">
         <div v-for="education in displayEducation" :key="education.uuid" class="relative p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-          <!-- Ongoing Badge -->
-          <div v-if="!education.isCompleted" class="absolute top-4 right-4">
-            <span class="px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-full">
+          <!-- Top-right badges row -->
+          <div class="absolute top-4 right-4 flex items-center gap-2">
+            <IndexingStatusBadge
+              v-if="indexingStatus"
+              :status="indexingStatus.getStatus(education.uuid)?.status || 'never_indexed'"
+              :is-indexing="indexingStatus?.isReindexing(education.uuid) ?? false"
+            />
+            <span v-if="!education.isCompleted" class="px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-full">
               In Progress
             </span>
           </div>
@@ -300,6 +319,15 @@ const displayEducation = computed((): EducationDisplay[] => {
           
           <!-- Actions -->
           <div class="flex items-center justify-end space-x-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <button
+              @click="handleReindexEntity(education.uuid)"
+              :disabled="(indexingStatus?.isReindexing(education.uuid) ?? false) || indexingStatus?.getStatus(education.uuid)?.status === 'indexed'"
+              class="px-3 py-1.5 text-sm bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Icon v-if="!indexingStatus?.isReindexing(education.uuid)" name="mdi:refresh" class="w-4 h-4 mr-1" />
+              <Icon v-else name="mdi:loading" class="w-4 h-4 mr-1 animate-spin" />
+              {{ indexingStatus?.isReindexing(education.uuid) ? 'Indexing...' : 'Reindex' }}
+            </button>
             <button
               @click="openEditModal(education)"
               class="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center"
