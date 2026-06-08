@@ -1,5 +1,5 @@
 """
-PDF Parser Service - Extracts structured data from CV PDFs using Docling and LLM.
+PDF Parser Service - Extracts structured data from CV PDFs using LiteParse and LLM.
 Consolidated to handle both text extraction and structured parsing.
 """
 
@@ -10,10 +10,7 @@ from pydantic import BaseModel, Field, field_validator
 from datetime import date, datetime
 from pathlib import Path
 
-# Docling imports
-from docling.datamodel.base_models import InputFormat
-from docling.document_converter import DocumentConverter, PdfFormatOption
-from docling.datamodel.pipeline_options import PdfPipelineOptions, AcceleratorOptions
+from liteparse import LiteParse
 
 from features.llm.service import LLMService
 
@@ -341,36 +338,28 @@ class ResumeDataLenient(BaseModel):
 
 
 class PDFParserService:
-    """Service for extracting and parsing PDF resumes using Docling and LLM"""
+    """Service for extracting and parsing PDF resumes using LiteParse and LLM"""
 
     def __init__(self):
         self.llm_service = LLMService()
-
-        # Configure Docling for CPU
-        pipeline_options = PdfPipelineOptions()
-        pipeline_options.accelerator_options = AcceleratorOptions(device="cpu")
-        self.converter = DocumentConverter(
-            format_options={
-                InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
-            }
-        )
-        logger.info("PDFParserService initialized with Docling (CPU)")
+        self.parser = LiteParse(ocr_enabled=True)
+        logger.info("PDFParserService initialized with LiteParse")
 
     async def _extract_text(self, pdf_path: str | Path) -> str:
-        """Extract Markdown text from PDF using Docling"""
+        """Extract text from PDF using LiteParse"""
 
-        def blocking_convert():
-            result = self.converter.convert(str(pdf_path))
-            return result.document.export_to_markdown()
+        def blocking_parse():
+            result = self.parser.parse(str(pdf_path))
+            return result.text
 
         try:
-            return await asyncio.to_thread(blocking_convert)
+            return await asyncio.to_thread(blocking_parse)
         except Exception as e:
-            logger.error(f"Docling extraction failed: {e}")
+            logger.error(f"LiteParse extraction failed: {e}")
             return ""
 
     async def parse_cv_structure(self, file_path: str) -> Dict[str, Any]:
-        """Convert PDF to structured JSON using Docling + LLM"""
+        """Convert PDF to structured JSON using LiteParse + LLM"""
         try:
             # 1. Text Extraction
             raw_text = await self._extract_text(file_path)

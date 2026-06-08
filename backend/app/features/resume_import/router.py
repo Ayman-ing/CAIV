@@ -31,7 +31,7 @@ async def upload_resume(
     """
     Upload and parse a resume PDF
 
-    The resume will be processed using Docling to extract structured data
+    The resume will be processed using LiteParse to extract structured data
     including contact info, education, work experience, skills, etc.
     """
     # Save uploaded file temporarily

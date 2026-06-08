@@ -4,7 +4,7 @@
 
 An **end-to-end resume import pipeline** that:
 1. Receives PDF resumes from users
-2. Extracts structured data using Docling
+2. Extracts structured data using LiteParse
 3. Intelligently parses with LLM using **function calling**
 4. Validates against all profile schemas
 5. Populates the database automatically
@@ -14,7 +14,7 @@ An **end-to-end resume import pipeline** that:
 ## Key Features
 
 ### 🎯 Smart Data Extraction
-- **Docling PDF Parser** - Advanced document understanding
+- **LiteParse PDF Parser** - Advanced document understanding
 - **Groq LLM** - Intelligent content categorization
 - **Function Calling** - Schema-enforced parsing (NEW!)
 - **Custom Sections** - Catch-all for non-standard data
@@ -68,7 +68,7 @@ User Upload (PDF)
 ✓ File validation
 ✓ Profile ownership check
     ↓
-Docling PDF Extraction
+LiteParse PDF Extraction
     ↓
 Text → LLM with Function Calling
     ↓
@@ -377,7 +377,7 @@ This implementation provides a **production-ready resume import pipeline** that:
 
 🎯 **Solves the Original Request**
 - ✅ Receives PDF from router
-- ✅ Extracts data with Docling (PDF parser)
+- ✅ Extracts data with LiteParse (PDF parser)
 - ✅ Feeds to LLM with profile schemas
 - ✅ Tells LLM to use custom sections for uncategorized data
 - ✅ Returns validated JSON

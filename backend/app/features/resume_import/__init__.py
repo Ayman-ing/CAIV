@@ -1,5 +1,5 @@
 """
-Resume Import Feature - Upload and parse resume PDFs using Docling
+Resume Import Feature - Upload and parse resume PDFs using LiteParse
 """
 from .router import router as resume_import_router
 from .service import ResumeImportService

@@ -312,7 +312,7 @@ resume_data = ResumeData(**args)  # Direct validation!
 POST /api/v1/resume-import/upload
 
 # Pipeline now:
-1. Extracts PDF text with Docling
+1. Extracts PDF text with LiteParse
 2. Converts ResumeData schema to Groq function
 3. Calls Groq with function definition
 4. Groq returns structured function call
