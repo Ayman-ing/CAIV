@@ -4,7 +4,7 @@
 
 The resume import pipeline:
 1. Takes PDF resumes
-2. Extracts text with Docling
+2. Extracts text with LiteParse
 3. Uses Groq LLM with function calling for 100% reliable parsing
 4. Creates profile entries in all 8 sections automatically
 5. Uses custom_sections for anything that doesn't fit
@@ -20,7 +20,7 @@ GROQ_API_KEY=your_key_here
 
 # Dependencies (already in pyproject.toml)
 groq>=0.9.0
-docling>=1.0.0
+liteparse
 pydantic>=2.0
 ```
 
@@ -387,7 +387,7 @@ export GROQ_API_KEY="your_key_here"
 ```
 
 ### LLM Returns Empty Data
-- Check resume PDF is readable (Docling can extract text)
+- Check resume PDF is readable (LiteParse can extract text)
 - Verify LLM parsing instructions are clear
 - Check Groq API response in logs
 

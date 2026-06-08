@@ -24,7 +24,7 @@
 │                                                    ↑                │
 │  ┌──────────────────────────────────────────────────┘               │
 │  │                                                                  │
-│  ├── LLM Service (Groq) ←── PDF Parser (Docling) ←── Resume Upload │
+│  ├── LLM Service (Groq) ←── PDF Parser (LiteParse) ←── Resume Upload │
 │  ├── Vector Embeddings (sentence-transformers → pgvector)          │
 │  └── Celery (Redis broker → async background tasks)                │
 └─────────────────────────────────────────────────────────────────────┘
@@ -41,7 +41,7 @@
 | **ORM** | SQLAlchemy 2.0 + Alembic | Migrations & queries |
 | **Auth** | JWT (python-jose, passlib/bcrypt) | Authentication |
 | **AI/LLM** | Groq (llama-3.3-70b-versatile) | Resume parsing |
-| **PDF** | Docling (CPU mode) | PDF text extraction |
+| **PDF** | LiteParse (CPU mode) | PDF text extraction |
 | **Embeddings** | sentence-transformers (all-MiniLM-L6-v2, 384d) | Vector generation |
 | **Queue** | Celery + Redis | Async background tasks |
 | **Container** | Docker (pgvector, Redis) | Infrastructure |
@@ -238,7 +238,7 @@ Login → JWT token → localStorage → auth.client.ts plugin restores on refre
 PDF Upload (multipart)
     │
     ▼
-Docling (CPU) → Markdown text extraction
+LiteParse (CPU) → Markdown text extraction
     │
     ▼
 Groq LLM (function calling, llama-3.3-70b) → Structured ResumeData

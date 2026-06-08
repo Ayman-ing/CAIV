@@ -1,8 +1,9 @@
 <script setup lang="ts">
 // filepath: frontend/app/components/profile/professionalSummary/ProfessionalSummarySection.vue
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, inject } from 'vue'
 import CollapsibleSection from '~/components/ui/CollapsibleSection.vue'
 import Modal from '~/components/ui/Modal.vue'
+import IndexingStatusBadge from '~/components/ui/IndexingStatusBadge.vue'
 import { useProfileStore } from '~/stores/profileStore'
 import { profileSectionsService } from '~/services/profileSectionsService'
 import { useToast } from '~/composables/useToast'
@@ -11,6 +12,8 @@ import type { ProfessionalSummary } from '~/types/profile'
 const profileStore = useProfileStore()
 const activeProfile = profileStore.activeProfile
 const { success, error } = useToast()
+
+const indexingStatus = inject<any>('indexingStatus', null)
 
 const professionalSummaries = ref<ProfessionalSummary[]>([])
 const isExpanded = ref(false)
@@ -110,6 +113,9 @@ const handleSave = async () => {
     }
     
     await fetchSummaries()
+    if (indexingStatus && activeProfile.value?.uuid) {
+      try { await indexingStatus.refreshStatus(activeProfile.value.uuid) } catch {}
+    }
     closeModal()
   } catch (err) {
     console.error('Failed to save summary', err)
@@ -149,6 +155,9 @@ const confirmDelete = async () => {
     )
     // If we reach here without an error, the delete was successful
     await fetchSummaries()
+    if (indexingStatus && activeProfile.value?.uuid) {
+      try { await indexingStatus.refreshStatus(activeProfile.value.uuid) } catch {}
+    }
     closeDeleteModal()
     success('Professional summary deleted successfully!')
   } catch (err) {
@@ -169,6 +178,9 @@ const setAsDefault = async (summary: ProfessionalSummary) => {
       summary.uuid
     )
     await fetchSummaries()
+    if (indexingStatus && activeProfile.value?.uuid) {
+      try { await indexingStatus.refreshStatus(activeProfile.value.uuid) } catch {}
+    }
     success('Professional summary set as default!')
   } catch (err) {
     console.error('Failed to set default summary:', err)
@@ -179,6 +191,11 @@ const setAsDefault = async (summary: ProfessionalSummary) => {
 }
 
 
+
+async function handleReindexEntity(entityUuid: string): Promise<void> {
+  if (!activeProfile.value?.uuid || !indexingStatus) return
+  await indexingStatus.reindexEntity(activeProfile.value.uuid, entityUuid)
+}
 
 const characterCount = computed(() => formData.value.content.length)
 const isOverLimit = computed(() => characterCount.value > maxLength)
@@ -264,9 +281,14 @@ const useTemplate = (template: any) => {
       <!-- All Summaries List -->
       <div class="space-y-4">
         <div v-for="(summary, index) in professionalSummaries" :key="summary.uuid" class="relative p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md transition-shadow group">
-          <!-- Default Badge -->
-          <div v-if="summary.is_default" class="absolute top-4 right-4">
-            <span class="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 rounded-full flex items-center">
+          <!-- Top-right badges row -->
+          <div class="absolute top-4 right-4 flex items-center gap-2">
+            <IndexingStatusBadge
+              v-if="indexingStatus"
+              :status="indexingStatus.getStatus(summary.uuid)?.status || 'never_indexed'"
+              :is-indexing="indexingStatus?.isReindexing(summary.uuid) ?? false"
+            />
+            <span v-if="summary.is_default" class="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 rounded-full flex items-center">
               <Icon name="mdi:star" class="w-3 h-3 mr-1" />
               Default
             </span>
@@ -287,6 +309,15 @@ const useTemplate = (template: any) => {
             
             <!-- Action Buttons -->
             <div class="flex items-center space-x-2">
+              <button
+                @click="handleReindexEntity(summary.uuid)"
+                :disabled="(indexingStatus?.isReindexing(summary.uuid) ?? false) || indexingStatus?.getStatus(summary.uuid)?.status === 'indexed'"
+                class="px-3 py-1.5 text-sm bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Icon v-if="!indexingStatus?.isReindexing(summary.uuid)" name="mdi:refresh" class="w-4 h-4 mr-1" />
+                <Icon v-else name="mdi:loading" class="w-4 h-4 mr-1 animate-spin" />
+                {{ indexingStatus?.isReindexing(summary.uuid) ? 'Indexing...' : 'Reindex' }}
+              </button>
               <button
                 @click="openEditModal(summary)"
                 class="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center"

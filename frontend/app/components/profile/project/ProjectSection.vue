@@ -1,18 +1,20 @@
 <script setup lang="ts">
 // filepath: frontend/app/components/profile/project/ProjectSection.vue
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, inject } from 'vue'
 import CollapsibleSection from '~/components/ui/CollapsibleSection.vue'
 import Modal from '~/components/ui/Modal.vue'
 import { useToast } from '~/composables/useToast'
 import { useUrlValidator } from '~/composables/useUrlValidator'
 import { useFormValidation } from '~/composables/useFormValidation'
 import type { Project, ProjectFormData, ProjectDisplay } from './types'
+import IndexingStatusBadge from '~/components/ui/IndexingStatusBadge.vue'
 import { useProfileStore } from '~/stores/profileStore'
 import { profileSectionsService } from '~/services/profileSectionsService'
 
 const profileStore = useProfileStore()
 const activeProfile = profileStore.activeProfile
 const { success, error } = useToast()
+const indexingStatus = inject<any>('indexingStatus', null)
 const { isValidUrl, getUrlErrorMessage, normalizeUrl } = useUrlValidator()
 const { validateLength, validateEndDate } = useFormValidation()
 
@@ -178,6 +180,9 @@ const handleSave = async () => {
       success('Project added successfully!')
     }
     await fetchProjects()
+    if (indexingStatus && activeProfile.value?.uuid) {
+      try { await indexingStatus.refreshStatus(activeProfile.value.uuid) } catch {}
+    }
     closeModal()
   } catch (err) {
     console.error('Failed to save project:', err)
@@ -207,6 +212,9 @@ const confirmDelete = async () => {
   try {
     await profileSectionsService.deleteProject(activeProfile.value.uuid, projectToDelete.value.uuid)
     await fetchProjects()
+    if (indexingStatus && activeProfile.value?.uuid) {
+      try { await indexingStatus.refreshStatus(activeProfile.value.uuid) } catch {}
+    }
     closeDeleteModal()
     success('Project deleted successfully!')
   } catch (err) {
@@ -215,6 +223,11 @@ const confirmDelete = async () => {
   } finally {
     isDeleting.value = false
   }
+}
+
+async function handleReindexEntity(entityUuid: string): Promise<void> {
+  if (!activeProfile.value?.uuid || !indexingStatus) return
+  await indexingStatus.reindexEntity(activeProfile.value.uuid, entityUuid)
 }
 
 const isFormValid = computed(() => {
@@ -292,9 +305,14 @@ const displayProjects = computed((): ProjectDisplay[] => {
       <!-- Projects List -->
       <div class="space-y-6">
         <div v-for="project in displayProjects" :key="project.uuid" class="relative p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-        <!-- Ongoing Badge -->
-        <div v-if="project.isOngoing" class="absolute top-4 right-4">
-          <span class="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 rounded-full">
+        <!-- Top-right badges row -->
+        <div class="absolute top-4 right-4 flex items-center gap-2">
+          <IndexingStatusBadge
+            v-if="indexingStatus"
+            :status="indexingStatus.getStatus(project.uuid)?.status || 'never_indexed'"
+            :is-indexing="indexingStatus?.isReindexing(project.uuid) ?? false"
+          />
+          <span v-if="project.isOngoing" class="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 rounded-full">
             In Progress
           </span>
         </div>
@@ -334,6 +352,15 @@ const displayProjects = computed((): ProjectDisplay[] => {
         
         <!-- Actions -->
         <div class="flex items-center justify-end space-x-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <button
+            @click="handleReindexEntity(project.uuid)"
+            :disabled="(indexingStatus?.isReindexing(project.uuid) ?? false) || indexingStatus?.getStatus(project.uuid)?.status === 'indexed'"
+            class="px-3 py-1.5 text-sm bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Icon v-if="!indexingStatus?.isReindexing(project.uuid)" name="mdi:refresh" class="w-4 h-4 mr-1" />
+            <Icon v-else name="mdi:loading" class="w-4 h-4 mr-1 animate-spin" />
+            {{ indexingStatus?.isReindexing(project.uuid) ? 'Indexing...' : 'Reindex' }}
+          </button>
           <button
             @click="openEditModal(project)"
             class="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center"

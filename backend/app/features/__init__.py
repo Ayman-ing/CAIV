@@ -15,6 +15,7 @@ from .profiles.professional_summaries.router import router as professional_summa
 from .job_descriptions import job_description_router
 from .resume_import import resume_import_router
 from .tasks.router import router as tasks_router
+from .indexing import indexing_router
 
 
 # List of all feature routers
@@ -36,6 +37,7 @@ feature_routers = [
     job_description_router,
     resume_import_router,
     tasks_router,
+    indexing_router,
 ]
 
 __all__ = ["feature_routers"]

@@ -23,7 +23,7 @@
                 │                         │
                 ▼                         ▼
     ┌─────────────────────┐   ┌──────────────────────┐
-    │   Docling           │   │   LLMService         │
+    │   LiteParse           │   │   LLMService         │
     │   Extract PDF Text  │   │   Function Calling   │
     └──────────┬──────────┘   └──────────┬───────────┘
                │                         │
@@ -332,7 +332,7 @@ FUNCTION CALLING (NEW):
 1. USER UPLOADS RESUME
    ↓
 2. PDFParserService.parse_cv_structure()
-   ├─ extract_text_from_file()          → Docling extracts text
+   ├─ extract_text_from_file()          → LiteParse extracts text
    ├─ llm_service.parse_to_model_with_function_calling()
    │  ├─ pydantic_to_groq_function(ResumeData)  → Function definition
    │  ├─ provider.parse_with_function_calling()  → Groq API

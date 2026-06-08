@@ -2,7 +2,7 @@
 
 ## Overview
 The resume import pipeline automates the extraction of structured profile data from PDF resumes. It uses:
-- **Docling** - PDF text extraction with advanced document parsing
+- **LiteParse** - PDF text extraction with advanced document parsing
 - **LLM (Groq/Claude)** - Intelligent data structuring and categorization
 - **Database** - Persistent storage of extracted profile data
 
@@ -21,7 +21,7 @@ Service.upload_and_parse_resume() [ASYNC]
 ```
 PDFParserService.parse_cv_structure()
     ↓
-Docling extracts PDF → Markdown text
+LiteParse extracts PDF → Markdown text
 ```
 
 ### 3. LLM Parsing (Main Intelligence)

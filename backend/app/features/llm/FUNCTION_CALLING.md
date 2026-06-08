@@ -16,7 +16,7 @@ The resume import pipeline has been enhanced to use **Groq's function calling** 
 ```
 Resume PDF
   ↓
-Docling extracts text
+LiteParse extracts text
   ↓
 LLM generates JSON text
   ↓
@@ -29,7 +29,7 @@ Profile
 ```
 Resume PDF
   ↓
-Docling extracts text
+LiteParse extracts text
   ↓
 ResumeData schema converted to Groq function
   ↓

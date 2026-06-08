@@ -18,6 +18,6 @@ logger = logging.getLogger(__name__)
 
 logger.info("Celery worker starting — importing task modules")
 
-import features.vector_embeddings.tasks
+import features.indexing.tasks
 
 logger.info("All task modules loaded, worker ready")

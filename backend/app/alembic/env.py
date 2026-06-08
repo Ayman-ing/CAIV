@@ -33,7 +33,7 @@ try:
         ("job_keywords_models", "features/job_keywords/models.py"),
         ("job_requirements_models", "features/job_requirements/models.py"),
         ("outbox_events_models", "features/outbox_events/models.py"),
-        ("vector_embeddings_models", "features/vector_embeddings/models.py"),
+        ("vector_embeddings_models", "features/indexing/models.py"),
         ("custom_sections_models", "features/profiles/custom_sections/models.py"),
         ("profile_links_models", "features/profiles/profile_links/models.py"),
         ("professional_summaries_models", "features/profiles/professional_summaries/models.py"),
