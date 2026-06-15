@@ -33,9 +33,6 @@ dev = [
     "pytest-asyncio>=1.1.0",
 ]
 
-[tool.fastapi]
-path = "backend/app/main.py"
-
 [project.optional-dependencies]
 worker = [
     "sentence-transformers>=2.5.0",
