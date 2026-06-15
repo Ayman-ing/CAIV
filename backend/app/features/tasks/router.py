@@ -2,7 +2,7 @@
 import logging
 
 from fastapi import APIRouter
-from core.celery_app import get_celery_app
+from worker.app import get_celery_app
 
 logger = logging.getLogger(__name__)
 

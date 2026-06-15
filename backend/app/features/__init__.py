@@ -16,6 +16,7 @@ from .job_descriptions import job_description_router
 from .resume_import import resume_import_router
 from .tasks.router import router as tasks_router
 from .indexing import indexing_router
+from .resume_generation.router import router as resume_generation_router
 
 
 # List of all feature routers
@@ -38,6 +39,7 @@ feature_routers = [
     resume_import_router,
     tasks_router,
     indexing_router,
+    resume_generation_router,
 ]
 
 __all__ = ["feature_routers"]

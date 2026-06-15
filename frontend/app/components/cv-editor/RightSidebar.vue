@@ -9,6 +9,8 @@ const {
   addLink,
   removeLink,
   exportPDF,
+  updateLayout,
+  updatePageMargin,
 } = useCVEditor()
 const { error } = useToast()
 
@@ -155,6 +157,111 @@ const handleAddLink = () => {
             >
               <Icon name="heroicons:x-mark" class="w-4 h-4" />
             </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="px-4 py-4 border-b border-gray-200 dark:border-gray-700 space-y-3">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <Icon name="heroicons:document-text" class="w-4 h-4 inline mr-1" />
+          Layout
+        </label>
+
+        <div>
+          <div class="flex justify-between text-xs text-gray-500 mb-1">
+            <span>Font Size</span>
+            <span>{{ state.layout.fontSize }}px</span>
+          </div>
+          <input
+            type="range"
+            min="8"
+            max="14"
+            step="0.5"
+            :value="state.layout.fontSize"
+            class="w-full accent-blue-600"
+            @input="updateLayout('fontSize', parseFloat(($event.target as HTMLInputElement).value))"
+          >
+        </div>
+
+        <div>
+          <div class="flex justify-between text-xs text-gray-500 mb-1">
+            <span>Line Height</span>
+            <span>{{ state.layout.lineHeight.toFixed(1) }}</span>
+          </div>
+          <input
+            type="range"
+            min="1.0"
+            max="2.0"
+            step="0.1"
+            :value="state.layout.lineHeight"
+            class="w-full accent-blue-600"
+            @input="updateLayout('lineHeight', parseFloat(($event.target as HTMLInputElement).value))"
+          >
+        </div>
+
+        <div>
+          <div class="flex justify-between text-xs text-gray-500 mb-1">
+            <span>Section Spacing</span>
+            <span>{{ state.layout.sectionSpacing }}px</span>
+          </div>
+          <input
+            type="range"
+            min="4"
+            max="32"
+            step="1"
+            :value="state.layout.sectionSpacing"
+            class="w-full accent-blue-600"
+            @input="updateLayout('sectionSpacing', parseFloat(($event.target as HTMLInputElement).value))"
+          >
+        </div>
+
+        <div>
+          <span class="text-xs text-gray-500 block mb-1">Page Margins</span>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[10px] text-gray-400 block">Top</label>
+              <input
+                type="number"
+                min="10"
+                max="80"
+                :value="state.layout.pageMargins.top"
+                class="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                @input="updatePageMargin('top', parseInt(($event.target as HTMLInputElement).value) || 10)"
+              >
+            </div>
+            <div>
+              <label class="text-[10px] text-gray-400 block">Bottom</label>
+              <input
+                type="number"
+                min="10"
+                max="80"
+                :value="state.layout.pageMargins.bottom"
+                class="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                @input="updatePageMargin('bottom', parseInt(($event.target as HTMLInputElement).value) || 10)"
+              >
+            </div>
+            <div>
+              <label class="text-[10px] text-gray-400 block">Left</label>
+              <input
+                type="number"
+                min="10"
+                max="80"
+                :value="state.layout.pageMargins.left"
+                class="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                @input="updatePageMargin('left', parseInt(($event.target as HTMLInputElement).value) || 10)"
+              >
+            </div>
+            <div>
+              <label class="text-[10px] text-gray-400 block">Right</label>
+              <input
+                type="number"
+                min="10"
+                max="80"
+                :value="state.layout.pageMargins.right"
+                class="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                @input="updatePageMargin('right', parseInt(($event.target as HTMLInputElement).value) || 10)"
+              >
+            </div>
           </div>
         </div>
       </div>

@@ -16,7 +16,10 @@ class JobDescription(BaseEntity):
     
     # JobDescription specific fields
     user_id = Column(Integer, ForeignKey('users.id'))
-    url = Column(String)    # Relationships
+    url = Column(String)
+    title = Column(String, nullable=True)
+    company = Column(String, nullable=True)
+    content = Column(String, nullable=True)
     user = relationship("User", back_populates="job_descriptions")
     generated_resumes = relationship("GeneratedResume", back_populates="job_description",
                                      foreign_keys="GeneratedResume.job_description_id")
