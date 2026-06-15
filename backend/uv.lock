@@ -130,12 +130,8 @@ dependencies = [
     { name = "pyjwt" },
     { name = "python-dotenv" },
     { name = "redis" },
-    { name = "sqlalchemy" },
-]
-
-[package.optional-dependencies]
-worker = [
     { name = "sentence-transformers" },
+    { name = "sqlalchemy" },
     { name = "torch" },
 ]
 
@@ -164,11 +160,10 @@ requires-dist = [
     { name = "pyjwt", specifier = ">=2.10.1" },
     { name = "python-dotenv", specifier = ">=1.1.1" },
     { name = "redis", specifier = ">=5.0.0" },
-    { name = "sentence-transformers", marker = "extra == 'worker'", specifier = ">=2.5.0" },
+    { name = "sentence-transformers", specifier = ">=2.5.0" },
     { name = "sqlalchemy", specifier = ">=2.0.42" },
-    { name = "torch", marker = "extra == 'worker'", specifier = ">=2.3.1" },
+    { name = "torch", specifier = ">=2.3.1" },
 ]
-provides-extras = ["worker"]
 
 [package.metadata.requires-dev]
 dev = [

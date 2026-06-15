@@ -20,7 +20,9 @@ dependencies = [
     "pyjwt>=2.10.1",
     "python-dotenv>=1.1.1",
     "redis>=5.0.0",
+    "sentence-transformers>=2.5.0",
     "sqlalchemy>=2.0.42",
+    "torch>=2.3.1",
 ]
 
 
@@ -31,10 +33,4 @@ dev = [
     "aiosqlite",
     "pytest>=8.4.1",
     "pytest-asyncio>=1.1.0",
-]
-
-[project.optional-dependencies]
-worker = [
-    "sentence-transformers>=2.5.0",
-    "torch>=2.3.1",
 ]
