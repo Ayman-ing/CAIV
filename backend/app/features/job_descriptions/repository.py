@@ -21,7 +21,10 @@ class JobDescriptionRepository:
         """Create a new job description"""
         db_job_desc = JobDescription(
             user_id=user_id,
-            url=str(job_desc_data.url)
+            url=str(job_desc_data.url),
+            title=job_desc_data.title,
+            company=job_desc_data.company,
+            content=job_desc_data.content,
         )
         self.db.add(db_job_desc)
         await self.db.commit()

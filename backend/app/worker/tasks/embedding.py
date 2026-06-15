@@ -6,13 +6,13 @@ from typing import List, Optional
 
 from sqlalchemy import select
 
-from core.celery_app import celery_app
+from worker.app import celery_app
 from core.config import get_settings
 from core.redis_client import release_lock, publish_event
 from db.sync_session import SyncSessionLocal
-from .service import EmbeddingService
-from .text_formatter import TextFormatter
-from .models import Embedding
+from features.indexing.service import EmbeddingService
+from features.indexing.text_formatter import TextFormatter
+from features.indexing.models import Embedding
 
 logger = logging.getLogger(__name__)
 

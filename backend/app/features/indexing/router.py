@@ -20,13 +20,32 @@ from features.profiles.repository import ProfileRepository
 from features.profiles.service import ProfileService
 from features.indexing.models import Embedding
 from features.indexing.text_formatter import TextFormatter
-from features.indexing.tasks import index_profile_task, index_entity_task
+
 from features.indexing.schemas import (
     EntityIndexingStatusItem,
     IndexingStatusResponse,
     EntityIndexingResponse,
 )
 from shared.models.entity import Entity
+
+# Lazy imports for Celery tasks — avoids circular import when worker entry
+# loads task modules which in turn trigger features package initialization.
+_index_profile_task = None
+_index_entity_task = None
+
+def _get_index_profile_task():
+    global _index_profile_task
+    if _index_profile_task is None:
+        from worker.tasks.embedding import index_profile_task
+        _index_profile_task = index_profile_task
+    return _index_profile_task
+
+def _get_index_entity_task():
+    global _index_entity_task
+    if _index_entity_task is None:
+        from worker.tasks.embedding import index_entity_task
+        _index_entity_task = index_entity_task
+    return _index_entity_task
 
 logger = logging.getLogger(__name__)
 
@@ -142,7 +161,7 @@ async def index_profile(
                 message="Indexing already in progress for this profile"
             )
 
-        task = index_profile_task.delay(profile_uuid)
+        task = _get_index_profile_task().delay(profile_uuid)
 
         logger.info(
             f"Indexing triggered for profile {profile_uuid} "
@@ -297,7 +316,7 @@ async def index_single_entity(
         )
 
     try:
-        task = index_entity_task.delay(entity_uuid, entity_type, text, profile_uuid=profile_uuid)
+        task = _get_index_entity_task().delay(entity_uuid, entity_type, text, profile_uuid=profile_uuid)
         logger.info(
             f"Single entity indexing triggered: {entity_uuid} "
             f"({entity_type}) → task_id={task.id}"

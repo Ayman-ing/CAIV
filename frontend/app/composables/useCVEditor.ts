@@ -54,6 +54,17 @@ export interface CVEditorState {
     left: number
     right: number
   }
+  layout: {
+    fontSize: number
+    lineHeight: number
+    sectionSpacing: number
+    pageMargins: {
+      top: number
+      bottom: number
+      left: number
+      right: number
+    }
+  }
 }
 
 const emptyProfileData = (): ProfileData => ({
@@ -98,6 +109,12 @@ const state = reactive<CVEditorState>({
   sidebarWidths: {
     left: 320,
     right: 320,
+  },
+  layout: {
+    fontSize: 11,
+    lineHeight: 1.4,
+    sectionSpacing: 16,
+    pageMargins: { top: 40, bottom: 40, left: 40, right: 40 },
   },
 })
 
@@ -454,6 +471,21 @@ export function useCVEditor() {
     state.sidebarWidths[side] = Math.max(minWidth, Math.min(maxWidth, width))
   }
 
+  function updateLayout<K extends keyof CVEditorState['layout']>(
+    key: K,
+    value: CVEditorState['layout'][K]
+  ): void {
+    if (key === 'pageMargins' && typeof value === 'object') {
+      Object.assign(state.layout.pageMargins, value)
+    } else {
+      (state.layout as any)[key] = value
+    }
+  }
+
+  function updatePageMargin(side: keyof typeof state.layout.pageMargins, value: number): void {
+    state.layout.pageMargins[side] = Math.max(10, Math.min(80, value))
+  }
+
   function resetState(): void {
     state.currentResume = null
     state.selectedTemplate = 'CANADIAN'
@@ -502,6 +534,8 @@ export function useCVEditor() {
     exportPDF,
     saveResume,
     updateSidebarWidth,
+    updateLayout,
+    updatePageMargin,
     resetState,
   }
 }

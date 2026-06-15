@@ -28,10 +28,12 @@ celery_app.conf.update(
     task_default_queue='default',
     task_routes={
         'embedding.*': {'queue': 'embeddings'},
+        'generation.*': {'queue': 'generation'},
     },
     task_queues={
         'default': {'exchange': 'default', 'routing_key': 'default'},
         'embeddings': {'exchange': 'embeddings', 'routing_key': 'embeddings'},
+        'generation': {'exchange': 'generation', 'routing_key': 'generation'},
     },
 )
 
