@@ -25,8 +25,6 @@ const contentHeightPx = computed(() =>
   A4_HEIGHT_MM / MM_PER_PX - (state.layout.pageMargins.top + state.layout.pageMargins.bottom)
 )
 
-const headerHeightPx = computed(() => state.layout.pageMargins.top)
-
 const pageInnerStyle = computed(() => ({
   padding: `${state.layout.pageMargins.top}px ${state.layout.pageMargins.right}px ${state.layout.pageMargins.bottom}px ${state.layout.pageMargins.left}px`,
 }))
@@ -372,96 +370,98 @@ const zoomIndicator = computed(() => `${Math.round(scale.value * 100)}%`)
         </div>
       </section-block>
 
-      <section-block v-for="comp in includedComponents" :key="'r-' + comp.uuid" v-bind="comp.component_type === 'custom_sections' ? {} : { style: { marginBottom: state.layout.sectionSpacing + 'px' } }">
-        <template v-if="comp.component_type === 'professional_summary' && state.profileData.summary">
-          <hr class="border-t border-gray-800 mb-2">
-          <p :style="sectionStyle" class="text-gray-800">{{ state.profileData.summary }}</p>
-        </template>
+      <template v-for="comp in includedComponents" :key="'r-' + comp.uuid">
+        <section-block v-if="comp.component_type !== 'custom_sections'" :style="{ marginBottom: state.layout.sectionSpacing + 'px' }">
+          <template v-if="comp.component_type === 'professional_summary' && state.profileData.summary">
+            <hr class="border-t border-gray-800 mb-2">
+            <p :style="sectionStyle" class="text-gray-800">{{ state.profileData.summary }}</p>
+          </template>
 
-        <template v-else-if="comp.component_type === 'work_experience' && state.profileData.workExperiences.length > 0">
-          <hr class="border-t border-gray-800 mb-2">
-          <h2 class="font-bold text-gray-900 uppercase tracking-wider mb-2" :style="{ fontSize: state.layout.fontSize + 'px' }">Experience</h2>
-          <div v-for="exp in state.profileData.workExperiences" :key="'r-exp-' + exp.uuid" class="mb-3">
-            <div class="flex justify-between items-baseline">
-              <div>
-                <span class="font-semibold text-gray-900" :style="{ fontSize: state.layout.fontSize + 'px' }">{{ exp.job_title }}</span>
-                <span v-if="exp.company" class="text-gray-700" :style="{ fontSize: state.layout.fontSize + 'px' }">, {{ exp.company }}</span>
+          <template v-else-if="comp.component_type === 'work_experience' && state.profileData.workExperiences.length > 0">
+            <hr class="border-t border-gray-800 mb-2">
+            <h2 class="font-bold text-gray-900 uppercase tracking-wider mb-2" :style="{ fontSize: state.layout.fontSize + 'px' }">Experience</h2>
+            <div v-for="exp in state.profileData.workExperiences" :key="'r-exp-' + exp.uuid" class="mb-3">
+              <div class="flex justify-between items-baseline">
+                <div>
+                  <span class="font-semibold text-gray-900" :style="{ fontSize: state.layout.fontSize + 'px' }">{{ exp.job_title }}</span>
+                  <span v-if="exp.company" class="text-gray-700" :style="{ fontSize: state.layout.fontSize + 'px' }">, {{ exp.company }}</span>
+                </div>
+                <span class="text-gray-500 flex-shrink-0 ml-4 whitespace-nowrap" :style="{ fontSize: state.layout.fontSize - 2 + 'px' }">{{ dateRange(exp.start_date, exp.end_date) }}</span>
               </div>
-              <span class="text-gray-500 flex-shrink-0 ml-4 whitespace-nowrap" :style="{ fontSize: state.layout.fontSize - 2 + 'px' }">{{ dateRange(exp.start_date, exp.end_date) }}</span>
+              <p v-if="exp.description" class="text-gray-700 mt-0.5" :style="sectionStyle">{{ exp.description }}</p>
             </div>
-            <p v-if="exp.description" class="text-gray-700 mt-0.5" :style="sectionStyle">{{ exp.description }}</p>
-          </div>
-        </template>
+          </template>
 
-        <template v-else-if="comp.component_type === 'education' && state.profileData.education.length > 0">
-          <hr class="border-t border-gray-800 mb-2">
-          <h2 class="font-bold text-gray-900 uppercase tracking-wider mb-2" :style="{ fontSize: state.layout.fontSize + 'px' }">Education</h2>
-          <div v-for="edu in state.profileData.education" :key="'r-edu-' + edu.uuid" class="mb-2">
-            <div class="flex justify-between items-baseline">
-              <div>
-                <span class="font-semibold text-gray-900" :style="{ fontSize: state.layout.fontSize + 'px' }">{{ edu.degree }}</span>
-                <span v-if="edu.institution" class="text-gray-700" :style="{ fontSize: state.layout.fontSize + 'px' }">, {{ edu.institution }}</span>
+          <template v-else-if="comp.component_type === 'education' && state.profileData.education.length > 0">
+            <hr class="border-t border-gray-800 mb-2">
+            <h2 class="font-bold text-gray-900 uppercase tracking-wider mb-2" :style="{ fontSize: state.layout.fontSize + 'px' }">Education</h2>
+            <div v-for="edu in state.profileData.education" :key="'r-edu-' + edu.uuid" class="mb-2">
+              <div class="flex justify-between items-baseline">
+                <div>
+                  <span class="font-semibold text-gray-900" :style="{ fontSize: state.layout.fontSize + 'px' }">{{ edu.degree }}</span>
+                  <span v-if="edu.institution" class="text-gray-700" :style="{ fontSize: state.layout.fontSize + 'px' }">, {{ edu.institution }}</span>
+                </div>
+                <span class="text-gray-500 flex-shrink-0 ml-4 whitespace-nowrap" :style="{ fontSize: state.layout.fontSize - 2 + 'px' }">{{ dateRange(edu.start_date, edu.end_date) }}</span>
               </div>
-              <span class="text-gray-500 flex-shrink-0 ml-4 whitespace-nowrap" :style="{ fontSize: state.layout.fontSize - 2 + 'px' }">{{ dateRange(edu.start_date, edu.end_date) }}</span>
+              <span v-if="edu.field_of_study" class="text-gray-600" :style="{ fontSize: state.layout.fontSize + 'px' }">{{ edu.field_of_study }}</span>
+              <p v-if="edu.description" class="text-gray-700 mt-0.5" :style="sectionStyle">{{ edu.description }}</p>
             </div>
-            <span v-if="edu.field_of_study" class="text-gray-600" :style="{ fontSize: state.layout.fontSize + 'px' }">{{ edu.field_of_study }}</span>
-            <p v-if="edu.description" class="text-gray-700 mt-0.5" :style="sectionStyle">{{ edu.description }}</p>
-          </div>
-        </template>
+          </template>
 
-        <template v-else-if="comp.component_type === 'skills' && state.profileData.skills.length > 0">
-          <hr class="border-t border-gray-800 mb-2">
-          <h2 class="font-bold text-gray-900 uppercase tracking-wider mb-2" :style="{ fontSize: state.layout.fontSize + 'px' }">Skills</h2>
-          <div class="flex flex-wrap gap-x-3 gap-y-1">
-            <span v-for="skill in state.profileData.skills" :key="'r-sk-' + skill.uuid" class="text-gray-800" :style="{ fontSize: state.layout.fontSize + 'px' }">{{ skillDisplay(skill) }}</span>
-          </div>
-        </template>
-
-        <template v-else-if="comp.component_type === 'projects' && state.profileData.projects.length > 0">
-          <hr class="border-t border-gray-800 mb-2">
-          <h2 class="font-bold text-gray-900 uppercase tracking-wider mb-2" :style="{ fontSize: state.layout.fontSize + 'px' }">Projects</h2>
-          <div v-for="proj in state.profileData.projects" :key="'r-pr-' + proj.uuid" class="mb-2">
-            <div class="flex justify-between items-baseline">
-              <span class="font-semibold text-gray-900" :style="{ fontSize: state.layout.fontSize + 'px' }">{{ proj.name }}</span>
-              <span class="text-gray-500 flex-shrink-0 ml-4 whitespace-nowrap" :style="{ fontSize: state.layout.fontSize - 2 + 'px' }">{{ dateRange(proj.start_date, proj.end_date) }}</span>
+          <template v-else-if="comp.component_type === 'skills' && state.profileData.skills.length > 0">
+            <hr class="border-t border-gray-800 mb-2">
+            <h2 class="font-bold text-gray-900 uppercase tracking-wider mb-2" :style="{ fontSize: state.layout.fontSize + 'px' }">Skills</h2>
+            <div class="flex flex-wrap gap-x-3 gap-y-1">
+              <span v-for="skill in state.profileData.skills" :key="'r-sk-' + skill.uuid" class="text-gray-800" :style="{ fontSize: state.layout.fontSize + 'px' }">{{ skillDisplay(skill) }}</span>
             </div>
-            <p v-if="proj.description" class="text-gray-700 mt-0.5" :style="sectionStyle">{{ proj.description }}</p>
-            <div v-if="proj.technologies" class="text-gray-500 mt-0.5" :style="{ fontSize: state.layout.fontSize - 2 + 'px' }">
-              <span class="font-medium">Technologies:</span> {{ proj.technologies }}
-            </div>
-          </div>
-        </template>
+          </template>
 
-        <template v-else-if="comp.component_type === 'certificates' && state.profileData.certificates.length > 0">
-          <hr class="border-t border-gray-800 mb-2">
-          <h2 class="font-bold text-gray-900 uppercase tracking-wider mb-2" :style="{ fontSize: state.layout.fontSize + 'px' }">Certifications</h2>
-          <div v-for="cert in state.profileData.certificates" :key="'r-ce-' + cert.uuid" class="mb-2">
-            <div class="flex justify-between items-baseline">
-              <div>
-                <span class="font-semibold text-gray-900" :style="{ fontSize: state.layout.fontSize + 'px' }">{{ cert.name }}</span>
-                <span v-if="cert.issuing_organization" class="text-gray-700" :style="{ fontSize: state.layout.fontSize + 'px' }">, {{ cert.issuing_organization }}</span>
+          <template v-else-if="comp.component_type === 'projects' && state.profileData.projects.length > 0">
+            <hr class="border-t border-gray-800 mb-2">
+            <h2 class="font-bold text-gray-900 uppercase tracking-wider mb-2" :style="{ fontSize: state.layout.fontSize + 'px' }">Projects</h2>
+            <div v-for="proj in state.profileData.projects" :key="'r-pr-' + proj.uuid" class="mb-2">
+              <div class="flex justify-between items-baseline">
+                <span class="font-semibold text-gray-900" :style="{ fontSize: state.layout.fontSize + 'px' }">{{ proj.name }}</span>
+                <span class="text-gray-500 flex-shrink-0 ml-4 whitespace-nowrap" :style="{ fontSize: state.layout.fontSize - 2 + 'px' }">{{ dateRange(proj.start_date, proj.end_date) }}</span>
               </div>
-              <span v-if="cert.issue_date" class="text-gray-500 flex-shrink-0 ml-4 whitespace-nowrap" :style="{ fontSize: state.layout.fontSize - 2 + 'px' }">{{ formatDate(cert.issue_date) }}</span>
+              <p v-if="proj.description" class="text-gray-700 mt-0.5" :style="sectionStyle">{{ proj.description }}</p>
+              <div v-if="proj.technologies" class="text-gray-500 mt-0.5" :style="{ fontSize: state.layout.fontSize - 2 + 'px' }">
+                <span class="font-medium">Technologies:</span> {{ proj.technologies }}
+              </div>
             </div>
-          </div>
-        </template>
+          </template>
 
-        <template v-else-if="comp.component_type === 'languages' && state.profileData.languages.length > 0">
-          <hr class="border-t border-gray-800 mb-2">
-          <h2 class="font-bold text-gray-900 uppercase tracking-wider mb-2" :style="{ fontSize: state.layout.fontSize + 'px' }">Languages</h2>
-          <div class="flex flex-wrap gap-x-4 gap-y-1">
-            <span v-for="lang in state.profileData.languages" :key="'r-la-' + lang.uuid" class="text-gray-800" :style="{ fontSize: state.layout.fontSize + 'px' }">{{ lang.language }} <span class="text-gray-500">{{ lang.proficiency }}</span></span>
-          </div>
-        </template>
+          <template v-else-if="comp.component_type === 'certificates' && state.profileData.certificates.length > 0">
+            <hr class="border-t border-gray-800 mb-2">
+            <h2 class="font-bold text-gray-900 uppercase tracking-wider mb-2" :style="{ fontSize: state.layout.fontSize + 'px' }">Certifications</h2>
+            <div v-for="cert in state.profileData.certificates" :key="'r-ce-' + cert.uuid" class="mb-2">
+              <div class="flex justify-between items-baseline">
+                <div>
+                  <span class="font-semibold text-gray-900" :style="{ fontSize: state.layout.fontSize + 'px' }">{{ cert.name }}</span>
+                  <span v-if="cert.issuing_organization" class="text-gray-700" :style="{ fontSize: state.layout.fontSize + 'px' }">, {{ cert.issuing_organization }}</span>
+                </div>
+                <span v-if="cert.issue_date" class="text-gray-500 flex-shrink-0 ml-4 whitespace-nowrap" :style="{ fontSize: state.layout.fontSize - 2 + 'px' }">{{ formatDate(cert.issue_date) }}</span>
+              </div>
+            </div>
+          </template>
 
-        <template v-else-if="comp.component_type === 'custom_sections'">
-          <div v-for="cs in visibleCustomSections" :key="'r-cs-' + cs.uuid" :style="{ marginBottom: state.layout.sectionSpacing + 'px' }">
+          <template v-else-if="comp.component_type === 'languages' && state.profileData.languages.length > 0">
+            <hr class="border-t border-gray-800 mb-2">
+            <h2 class="font-bold text-gray-900 uppercase tracking-wider mb-2" :style="{ fontSize: state.layout.fontSize + 'px' }">Languages</h2>
+            <div class="flex flex-wrap gap-x-4 gap-y-1">
+              <span v-for="lang in state.profileData.languages" :key="'r-la-' + lang.uuid" class="text-gray-800" :style="{ fontSize: state.layout.fontSize + 'px' }">{{ lang.language }} <span class="text-gray-500">{{ lang.proficiency }}</span></span>
+            </div>
+          </template>
+        </section-block>
+
+        <template v-else>
+          <section-block v-for="cs in visibleCustomSections" :key="'r-cs-' + cs.uuid" :style="{ marginBottom: state.layout.sectionSpacing + 'px' }">
             <hr class="border-t border-gray-800 mb-2">
             <h2 class="font-bold text-gray-900 uppercase tracking-wider mb-2" :style="{ fontSize: state.layout.fontSize + 'px' }">{{ cs.title }}</h2>
             <p :style="sectionStyle" class="text-gray-800">{{ cs.content }}</p>
-          </div>
+          </section-block>
         </template>
-      </section-block>
+      </template>
     </div>
 
     <div
