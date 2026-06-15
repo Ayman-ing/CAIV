@@ -90,7 +90,7 @@ function computePages() {
   let acc = 0
   let start = 0
   for (let i = 0; i < heights.length; i++) {
-    const h = heights[i]
+    const h = heights[i]!
     if (acc + h > maxPx && acc > 0) {
       result.push({ start, end: i })
       start = i
@@ -112,7 +112,8 @@ function measureSections() {
   const children = rulerRef.value.children
   const heights: number[] = []
   for (let i = 0; i < children.length; i++) {
-    heights.push(children[i].getBoundingClientRect().height)
+    const child = children[i]
+    if (child) heights.push(child.getBoundingClientRect().height)
   }
   sectionHeights.value = heights
   computePages()
