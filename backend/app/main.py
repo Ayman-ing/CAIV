@@ -1,9 +1,15 @@
 """
 Main FastAPI application
 """
+import sys
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
+
+_app_root = os.path.dirname(os.path.abspath(__file__))
+if _app_root not in sys.path:
+    sys.path.insert(0, _app_root)
 
 from core.config import get_settings
 from core.logging import setup_logging
